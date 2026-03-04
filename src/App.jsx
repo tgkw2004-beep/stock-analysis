@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import Strategies from './pages/Strategies';
+import SupplyStrategy from './pages/SupplyStrategy';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -13,8 +14,10 @@ export default function App() {
     switch (activePage) {
       case 'dashboard':
         return <Dashboard />;
-      case 'strategies':
+      case 'quant':
         return <Strategies />;
+      case 'supply':
+        return <SupplyStrategy />;
       case 'settings':
         return <Settings />;
       default:
@@ -24,7 +27,8 @@ export default function App() {
 
   const pageTitle = {
     dashboard: '대시보드',
-    strategies: '전략 분석',
+    quant: '퀀트 매수 전략',
+    supply: '반등 수급 매매 전략',
     settings: '설정',
   };
 

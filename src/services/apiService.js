@@ -1,42 +1,61 @@
-// API 서비스 — 백엔드 API 호출 모듈
+// 데이터 서비스 — 빌드타임 DB 데이터 사용
+import dbData from '../data/dbData.json';
 
-const API_BASE = import.meta.env.PROD
-    ? 'https://stock-analysis-api-xxxx.onrender.com'   // Render 배포 후 업데이트
-    : 'http://localhost:3001';
+// ─── 퀀트 매수 전략 ───
+export function getQuantStrategies({ strategy, date, sort = 'date', order = 'desc' } = {}) {
+    let filtered = [...dbData.quant.data];
+    if (strategy && strategy !== 'ALL') filtered = filtered.filter(d => d.strategy === strategy);
+    if (date) filtered = filtered.filter(d => d.date === date);
 
-/**
- * 전략 데이터 조회
- * @param {Object} params - { strategy, date, sort, order, limit }
- */
-export async function fetchStrategies(params = {}) {
-    const query = new URLSearchParams();
-    if (params.strategy && params.strategy !== 'ALL') query.set('strategy', params.strategy);
-    if (params.date) query.set('date', params.date);
-    if (params.sort) query.set('sort', params.sort);
-    if (params.order) query.set('order', params.order);
-    if (params.limit) query.set('limit', params.limit);
-
-    const res = await fetch(`${API_BASE}/api/strategies?${query}`);
-    if (!res.ok) throw new Error(`API Error: ${res.status}`);
-    return res.json();
+    const mult = order === 'desc' ? -1 : 1;
+    filtered.sort((a, b) => {
+        if (sort === 'close') return (a.close - b.close) * mult;
+        if (sort === 'stock_name') return a.stock_name.localeCompare(b.stock_name) * mult;
+        return 0;
+    });
+    return filtered;
 }
 
-/**
- * 전략별 요약 통계
- * @param {string} date - 특정 날짜 필터 (optional)
- */
-export async function fetchSummary(date) {
-    const query = date ? `?date=${date}` : '';
-    const res = await fetch(`${API_BASE}/api/strategies/summary${query}`);
-    if (!res.ok) throw new Error(`API Error: ${res.status}`);
-    return res.json();
+export function getQuantSummary(date) {
+    const data = date ? dbData.quant.data.filter(d => d.date === date) : dbData.quant.data;
+    const byStrategy = {};
+    data.forEach(d => { byStrategy[d.strategy] = (byStrategy[d.strategy] || 0) + 1; });
+    return { total: data.length, by_strategy: byStrategy, date_range: dbData.quant.date_range };
 }
 
-/**
- * 사용 가능한 날짜 목록
- */
-export async function fetchDates() {
-    const res = await fetch(`${API_BASE}/api/strategies/dates`);
-    if (!res.ok) throw new Error(`API Error: ${res.status}`);
-    return res.json();
+export function getQuantDates() {
+    return dbData.quant.dates;
+}
+
+// ─── 반등 수급 매매 전략 ───
+export function getSupplyStrategies({ date, sort = 'val_rank', order = 'asc' } = {}) {
+    let filtered = [...dbData.supply.data];
+    if (date) filtered = filtered.filter(d => d.date === date);
+
+    const mult = order === 'desc' ? -1 : 1;
+    filtered.sort((a, b) => {
+        if (sort === 'val_rank') return ((a.val_rank || 9999) - (b.val_rank || 9999)) * mult;
+        if (sort === 'close') return ((a.close || 0) - (b.close || 0)) * mult;
+        if (sort === 'z_score') return (parseFloat(a.z_score || 0) - parseFloat(b.z_score || 0)) * mult;
+        if (sort === 'stock_name') return (a.stock_name || '').localeCompare(b.stock_name || '') * mult;
+        return 0;
+    });
+    return filtered;
+}
+
+export function getSupplySummary(date) {
+    const data = date ? dbData.supply.data.filter(d => d.date === date) : dbData.supply.data;
+    const abcYes = data.filter(d => d.abc_all === 'Y').length;
+    const accumYes = data.filter(d => d.accum_signal === 'Y').length;
+    const supplyYes = data.filter(d => d.supply_buy === 'Y').length;
+    return { total: data.length, abc_count: abcYes, accum_count: accumYes, supply_count: supplyYes, date_range: dbData.supply.date_range };
+}
+
+export function getSupplyDates() {
+    return dbData.supply.dates;
+}
+
+// ─── 공통 ───
+export function getFetchedAt() {
+    return dbData.fetchedAt;
 }

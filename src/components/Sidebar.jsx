@@ -3,13 +3,14 @@ import {
     TrendingUp,
     Settings,
     BarChart3,
-    Zap,
-    Target,
     Activity,
 } from 'lucide-react';
-import { analysisSummary } from '../data/sampleData';
+import { getQuantSummary, getSupplySummary } from '../services/apiService';
 
 export default function Sidebar({ active, onNavigate, isOpen }) {
+    const quantSummary = getQuantSummary();
+    const supplySummary = getSupplySummary();
+
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
             {/* Logo */}
@@ -33,39 +34,24 @@ export default function Sidebar({ active, onNavigate, isOpen }) {
                     <span>대시보드</span>
                 </div>
 
-                <div
-                    className={`nav-item ${active === 'strategies' ? 'active' : ''}`}
-                    onClick={() => onNavigate('strategies')}
-                >
-                    <TrendingUp />
-                    <span>전략 분석</span>
-                    <span className="nav-badge">{analysisSummary.signals_found}</span>
-                </div>
-
                 <div className="nav-section-title">전략 카테고리</div>
 
-                <div className="nav-item" onClick={() => onNavigate('strategies')}>
-                    <Zap />
-                    <span>OMEGA-R</span>
-                    <span className="nav-badge">{analysisSummary.by_strategy['OMEGA-R']}</span>
+                <div
+                    className={`nav-item ${active === 'quant' ? 'active' : ''}`}
+                    onClick={() => onNavigate('quant')}
+                >
+                    <TrendingUp />
+                    <span>퀀트 매수 전략</span>
+                    <span className="nav-badge">{quantSummary.total}</span>
                 </div>
 
-                <div className="nav-item" onClick={() => onNavigate('strategies')}>
-                    <BarChart3 />
-                    <span>ALPHA-S</span>
-                    <span className="nav-badge">{analysisSummary.by_strategy['ALPHA-S']}</span>
-                </div>
-
-                <div className="nav-item" onClick={() => onNavigate('strategies')}>
+                <div
+                    className={`nav-item ${active === 'supply' ? 'active' : ''}`}
+                    onClick={() => onNavigate('supply')}
+                >
                     <Activity />
-                    <span>SIGMA-T</span>
-                    <span className="nav-badge">{analysisSummary.by_strategy['SIGMA-T']}</span>
-                </div>
-
-                <div className="nav-item" onClick={() => onNavigate('strategies')}>
-                    <Target />
-                    <span>Piercing</span>
-                    <span className="nav-badge">{analysisSummary.by_strategy['Piercing']}</span>
+                    <span>반등 수급 매매</span>
+                    <span className="nav-badge">{supplySummary.total}</span>
                 </div>
 
                 <div className="nav-section-title">시스템</div>
