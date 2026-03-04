@@ -23,13 +23,20 @@ export default function DatePicker({ value, onChange, availableDates = [], dateC
         }
     }, [value]);
 
-    // 외부 클릭 시 닫기
+    // 외부 클릭 시 닫기 및 ESC 키로 닫기
     useEffect(() => {
-        const handler = (e) => {
+        const handleMouse = (e) => {
             if (ref.current && !ref.current.contains(e.target)) setOpen(false);
         };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        const handleKey = (e) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+        document.addEventListener('mousedown', handleMouse);
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            document.removeEventListener('mousedown', handleMouse);
+            document.removeEventListener('keydown', handleKey);
+        };
     }, []);
 
     const availableSet = new Set(availableDates);

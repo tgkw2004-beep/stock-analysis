@@ -17,7 +17,7 @@ export default function Sidebar({ active, onNavigate, isOpen }) {
             <div className="sidebar-logo">
                 <div className="sidebar-logo-icon">📊</div>
                 <div>
-                    <h1>QuantFlow</h1>
+                    <h1>주식분석사이트(연습)</h1>
                     <span>Stock Analysis Engine</span>
                 </div>
             </div>
