@@ -1,9 +1,9 @@
 {
-  "fetchedAt": "2026-03-04T06:24:42.161Z",
+  "fetchedAt": "2026-03-04T08:13:38.471Z",
   "quant": {
-    "total": 275,
+    "total": 274,
     "by_strategy": {
-      "SIGMA-T": 89,
+      "SIGMA-T": 88,
       "OMEGA-R": 151,
       "ALPHA-S": 35
     },
@@ -14,7 +14,7 @@
     "dates": [
       {
         "date": "2026-03-04",
-        "count": 4
+        "count": 3
       },
       {
         "date": "2026-02-27",
@@ -289,7 +289,7 @@
         "open": 7800,
         "high": 9600,
         "low": 7690,
-        "close": 9010,
+        "close": 8350,
         "prime_l": "",
         "strategy": "SIGMA-T"
       },
@@ -301,17 +301,6 @@
         "high": 5990,
         "low": 4615,
         "close": 5990,
-        "prime_l": "",
-        "strategy": "SIGMA-T"
-      },
-      {
-        "date": "2026-03-04",
-        "stock_name": "미래생명자원",
-        "wics_name": "식품",
-        "open": 3365,
-        "high": 4070,
-        "low": 2980,
-        "close": 3640,
         "prime_l": "",
         "strategy": "SIGMA-T"
       },
@@ -3512,39 +3501,39 @@
     "data": [
       {
         "date": "2026-03-04",
-        "stock_name": "대한해운",
-        "theme_names": "해운,환율하락 수혜,LNG(액화천연가스)",
-        "stock_info": "철광석, 석탄, 천연가스, 원유 등의 에너지 및 자원을 전문적으로 수송하는 대표적인 벌크선사로 LNG선, 탱커선, 컨테이너선 등의 해운업 영위업체. 포스코, 한국가스공사, 한국전력 등이 주요 거래처.",
-        "val_top300": "Y",
-        "program_supply": "-19987564488",
-        "foreign_inst_supply": "-954000",
-        "invest_strategy": null,
-        "abc_all": "N",
-        "accum_signal": "N",
-        "stock_code": "005880",
-        "close": 2345,
-        "trade_value": "297014056900",
-        "val_rank": 22,
-        "supply_buy": "N",
-        "z_score": "-2.86"
-      },
-      {
-        "date": "2026-03-04",
         "stock_name": "남선알미늄",
         "theme_names": "자동차부품,비철금속",
         "stock_info": "범퍼 등 자동차용 내외장 플라스틱 부품을 생산/판매하는 자동차 사업부문 영위.",
         "val_top300": "Y",
-        "program_supply": "-120188977",
-        "foreign_inst_supply": "108000",
+        "program_supply": "-236513386",
+        "foreign_inst_supply": "205000",
         "invest_strategy": null,
         "abc_all": "N",
         "accum_signal": "N",
         "stock_code": "008350",
-        "close": 1196,
-        "trade_value": "40622435902",
-        "val_rank": 157,
+        "close": 1206,
+        "trade_value": "47787440248",
+        "val_rank": 198,
         "supply_buy": "Y",
         "z_score": "-2.32"
+      },
+      {
+        "date": "2026-03-04",
+        "stock_name": "S-Oil우",
+        "theme_names": null,
+        "stock_info": null,
+        "val_top300": "Y",
+        "program_supply": null,
+        "foreign_inst_supply": "20000",
+        "invest_strategy": null,
+        "abc_all": "N",
+        "accum_signal": "N",
+        "stock_code": "010955",
+        "close": 58300,
+        "trade_value": "38818537750",
+        "val_rank": 229,
+        "supply_buy": "Y",
+        "z_score": "-2.00"
       },
       {
         "date": "2026-03-04",
@@ -3558,9 +3547,9 @@
         "abc_all": "N",
         "accum_signal": "N",
         "stock_code": "185190",
-        "close": 899,
-        "trade_value": "8899",
-        "val_rank": 2748,
+        "close": 897,
+        "trade_value": "81796",
+        "val_rank": 2744,
         "supply_buy": "N",
         "z_score": "-2.19"
       },
@@ -3571,7 +3560,7 @@
         "stock_info": "아스콘(아스팔트 콘크리트) 생산, 판매업체. 아스콘 시장은 건설경기 변동에 영향을 받음. 아스콘 생산 및 판매에 그치지 않고 아스콘 포장공사를 주업으로 하는 회사를 인수 후 흡수합병하여, 생산부터 도로포장까지 원스탑서비스(One-Stop)를 제공.",
         "val_top300": "N",
         "program_supply": "-421885097",
-        "foreign_inst_supply": null,
+        "foreign_inst_supply": "-120344",
         "invest_strategy": null,
         "abc_all": "N",
         "accum_signal": "N",
@@ -3579,7 +3568,7 @@
         "close": 3005,
         "trade_value": "10564998544",
         "val_rank": 446,
-        "supply_buy": "N",
+        "supply_buy": "Y",
         "z_score": "-2.09"
       },
       {
@@ -3589,7 +3578,7 @@
         "stock_info": "개인정보보안 중심의 2차 본인인증 및 보안/보호서비스와 다양한 정보서비스를 개발 및 운영하는 것을 주된 사업으로 영위. 2009년 휴대폰번호보호 서비스를 시작으로 다양한 2차 본인인증 및 보안/보호서비스를 제공하고 있으며, 개인 금융, 자산 및 건강, 보험 등 정보 통합관리와 재테크 정보 큐레이션 등을 제공하며 생활정보 플랫폼으로 사업 영역을 확대중. 가상계좌 등의 서비스를 제공하는 헥토파이낸셜을 종속회사로 보유.",
         "val_top300": "N",
         "program_supply": "-466994950",
-        "foreign_inst_supply": null,
+        "foreign_inst_supply": "-37812",
         "invest_strategy": null,
         "abc_all": "N",
         "accum_signal": "N",
@@ -3607,7 +3596,7 @@
         "stock_info": "ICT 기술 기반의 유아교육 콘텐츠와 솔루션 사업을 자사 브랜드로 운영하고 있는 유아교육 전문 서비스업체. 유아교수용 솔루션, 홈스쿨링 놀이학습 서비스 등 스마트러닝(유아교육사업) 사업을 영위.",
         "val_top300": "N",
         "program_supply": "23366138",
-        "foreign_inst_supply": null,
+        "foreign_inst_supply": "4400",
         "invest_strategy": null,
         "abc_all": "N",
         "accum_signal": "Y",
@@ -3615,7 +3604,7 @@
         "close": 4590,
         "trade_value": "501639342",
         "val_rank": 1730,
-        "supply_buy": "N",
+        "supply_buy": "Y",
         "z_score": "-2.68"
       },
       {
