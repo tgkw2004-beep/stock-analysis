@@ -1,16 +1,10 @@
+import { useState, useEffect } from 'react';
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, ComposedChart, Line,
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Scan, Signal, TrendingUp, Clock } from 'lucide-react';
-import {
-    marketSummary,
-    strategySignals,
-    analysisSummary,
-    priceHistory,
-    strategyMeta,
-    configParams,
-} from '../data/sampleData';
+import { Scan, Signal, TrendingUp, Clock, Loader2 } from 'lucide-react';
+import { strategyMeta } from '../data/sampleData';
+import { fetchStrategies, fetchSummary, fetchDates } from '../services/apiService';
 
 // 커스텀 툴팁
 function ChartTooltip({ active, payload, label }) {
@@ -28,305 +22,300 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function Dashboard() {
-    const topSignals = strategySignals.slice(0, 6);
+    const [summary, setSummary] = useState(null);
+    const [signals, setSignals] = useState([]);
+    const [dates, setDates] = useState([]);
+    const [latestDate, setLatestDate] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadDashboard();
+    }, []);
+
+    const loadDashboard = async () => {
+        setLoading(true);
+        try {
+            const datesRes = await fetchDates();
+            const dateList = datesRes.dates || [];
+            setDates(dateList);
+            const latest = dateList.length > 0 ? dateList[0].date : '';
+            setLatestDate(latest);
+
+            if (latest) {
+                const [summaryRes, strategiesRes] = await Promise.all([
+                    fetchSummary(latest),
+                    fetchStrategies({ date: latest, limit: 50, sort: 'close', order: 'desc' }),
+                ]);
+                setSummary(summaryRes);
+                setSignals(strategiesRes.data || []);
+            }
+        } catch (e) {
+            console.error('Dashboard 데이터 로드 실패:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 전략별 차트 데이터
+    const chartData = summary
+        ? Object.entries(summary.by_strategy).map(([key, count]) => ({
+            name: key,
+            count,
+            fill: strategyMeta[key]?.color || '#6366f1',
+        }))
+        : [];
+
+    const topSignals = signals.slice(0, 8);
+    const totalSignals = summary?.total || 0;
+
+    if (loading) {
+        return (
+            <div className="page-enter" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', gap: '12px', color: 'var(--text-secondary)' }}>
+                <Loader2 size={28} className="spin-icon" />
+                데이터 로딩 중...
+            </div>
+        );
+    }
+
+    const calcChange = (s) => {
+        if (!s.open || s.open === 0) return 0;
+        return (((s.close - s.open) / s.open) * 100).toFixed(2);
+    };
 
     return (
         <div className="page-enter">
-            {/* 시장 바 */}
+            {/* 분석 날짜 바 */}
             <div className="market-bar">
                 <div className="market-bar-item">
-                    <span className="market-bar-label">KOSPI</span>
-                    <span className="market-bar-value">{marketSummary.kospiIndex.toLocaleString()}</span>
-                    <span className={`market-bar-change ${marketSummary.kospiChange >= 0 ? 'change-up' : 'change-down'}`}>
-                        {marketSummary.kospiChange >= 0 ? '+' : ''}{marketSummary.kospiChange}%
+                    <span className="market-bar-label">분석일</span>
+                    <span className="market-bar-value">{latestDate}</span>
+                </div>
+                <div className="market-bar-item">
+                    <span className="market-bar-label">감지 신호</span>
+                    <span className="market-bar-value change-up">{totalSignals}건</span>
+                </div>
+                <div className="market-bar-item">
+                    <span className="market-bar-label">OMEGA-R</span>
+                    <span className="market-bar-value" style={{ color: strategyMeta['OMEGA-R']?.color }}>
+                        {summary?.by_strategy?.['OMEGA-R'] || 0}
                     </span>
                 </div>
                 <div className="market-bar-item">
-                    <span className="market-bar-label">KOSDAQ</span>
-                    <span className="market-bar-value">{marketSummary.kosdaqIndex.toLocaleString()}</span>
-                    <span className={`market-bar-change ${marketSummary.kosdaqChange >= 0 ? 'change-up' : 'change-down'}`}>
-                        {marketSummary.kosdaqChange >= 0 ? '+' : ''}{marketSummary.kosdaqChange}%
+                    <span className="market-bar-label">ALPHA-S</span>
+                    <span className="market-bar-value" style={{ color: strategyMeta['ALPHA-S']?.color }}>
+                        {summary?.by_strategy?.['ALPHA-S'] || 0}
                     </span>
                 </div>
                 <div className="market-bar-item">
-                    <span className="market-bar-label">거래량</span>
-                    <span className="market-bar-value">{marketSummary.totalVolume}</span>
+                    <span className="market-bar-label">SIGMA-T</span>
+                    <span className="market-bar-value" style={{ color: strategyMeta['SIGMA-T']?.color }}>
+                        {summary?.by_strategy?.['SIGMA-T'] || 0}
+                    </span>
                 </div>
                 <div className="market-bar-item">
-                    <span className="market-bar-label">거래대금</span>
-                    <span className="market-bar-value">{marketSummary.totalValue}</span>
-                </div>
-                <div className="market-bar-item">
-                    <span className="market-bar-label">상승</span>
-                    <span className="market-bar-value change-up">{marketSummary.advancers}</span>
-                </div>
-                <div className="market-bar-item">
-                    <span className="market-bar-label">하락</span>
-                    <span className="market-bar-value change-down">{marketSummary.decliners}</span>
+                    <span className="market-bar-label">분석 기간</span>
+                    <span className="market-bar-value" style={{ fontSize: '0.82rem' }}>
+                        {summary?.date_range?.min_date} ~ {summary?.date_range?.max_date}
+                    </span>
                 </div>
             </div>
 
             {/* 통계 카드 */}
             <div className="stats-grid">
+                {['OMEGA-R', 'ALPHA-S', 'SIGMA-T'].map((key) => {
+                    const meta = strategyMeta[key];
+                    if (!meta) return null;
+                    const count = summary?.by_strategy?.[key] || 0;
+                    return (
+                        <div className="stat-card" key={key}>
+                            <div className="stat-card-header">
+                                <div className="stat-card-icon" style={{ background: `${meta.color}22`, color: meta.color, fontSize: '1.3rem' }}>
+                                    {meta.icon}
+                                </div>
+                                <div className="stat-card-label">{meta.fullName}</div>
+                            </div>
+                            <div className="stat-card-value" style={{ color: meta.color }}>{count}건</div>
+                            <div className="stat-card-sub">{meta.description}</div>
+                        </div>
+                    );
+                })}
                 <div className="stat-card">
                     <div className="stat-card-header">
                         <div className="stat-card-icon" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}>
                             <Scan size={20} />
                         </div>
-                        <div className="stat-card-label">총 스캔 종목</div>
+                        <div className="stat-card-label">총 신호</div>
                     </div>
-                    <div className="stat-card-value">{analysisSummary.total_scanned.toLocaleString()}</div>
+                    <div className="stat-card-value">{totalSignals}</div>
                     <div className="stat-card-sub">
                         <Clock size={12} />
-                        {configParams.target_date} 기준
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card-header">
-                        <div className="stat-card-icon" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>
-                            <Signal size={20} />
-                        </div>
-                        <div className="stat-card-label">감지된 신호</div>
-                    </div>
-                    <div className="stat-card-value">{analysisSummary.signals_found}</div>
-                    <div className="stat-card-sub">
-                        <TrendingUp size={12} />
-                        전략 매칭 성공률 {((analysisSummary.signals_found / analysisSummary.total_scanned) * 100).toFixed(2)}%
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card-header">
-                        <div className="stat-card-icon" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
-                            <ArrowUpRight size={20} />
-                        </div>
-                        <div className="stat-card-label">상승 종목</div>
-                    </div>
-                    <div className="stat-card-value change-up">{marketSummary.advancers}</div>
-                    <div className="stat-card-sub">
-                        전체 대비 {((marketSummary.advancers / (marketSummary.advancers + marketSummary.decliners + marketSummary.unchanged)) * 100).toFixed(1)}%
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-card-header">
-                        <div className="stat-card-icon" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                            <ArrowDownRight size={20} />
-                        </div>
-                        <div className="stat-card-label">하락 종목</div>
-                    </div>
-                    <div className="stat-card-value change-down">{marketSummary.decliners}</div>
-                    <div className="stat-card-sub">
-                        전체 대비 {((marketSummary.decliners / (marketSummary.advancers + marketSummary.decliners + marketSummary.unchanged)) * 100).toFixed(1)}%
+                        {latestDate} 기준
                     </div>
                 </div>
             </div>
 
-            {/* 메인 그리드 — 차트 + 전략분포 */}
+            {/* 메인 그리드 */}
             <div className="dashboard-grid">
-                {/* 볼린저 밴드 차트 */}
+                {/* 전략별 분포 차트 */}
                 <div className="card">
                     <div className="card-header">
                         <div className="card-title">
-                            <span className="card-title-icon">📈</span>
-                            삼성전자 — Bollinger Band
+                            <span className="card-title-icon">📊</span>
+                            전략별 신호 분포
                         </div>
-                        <div className="live-indicator">
-                            <span className="live-dot" />
-                            LIVE
-                        </div>
+                        <span className="tag-chip">총 {totalSignals}건</span>
                     </div>
                     <div className="card-body">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={priceHistory}>
-                                <defs>
-                                    <linearGradient id="bbFill" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
-                                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
-                                    </linearGradient>
-                                </defs>
+                        <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                                 <XAxis
-                                    dataKey="date"
-                                    tick={{ fill: '#64748b', fontSize: 11 }}
+                                    dataKey="name"
+                                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                                     axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
                                     tickLine={false}
                                 />
                                 <YAxis
-                                    domain={['dataMin - 1500', 'dataMax + 1500']}
                                     tick={{ fill: '#64748b', fontSize: 11 }}
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={(v) => (v / 1000).toFixed(0) + 'K'}
                                 />
                                 <Tooltip content={<ChartTooltip />} />
-                                <Area
-                                    type="monotone"
-                                    dataKey="bb_upper"
-                                    stroke="#6366f1"
-                                    strokeWidth={1}
-                                    fill="bbFill"
-                                    strokeDasharray="4 4"
-                                    fillOpacity={0}
-                                    name="BB 상단"
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="bb_lower"
-                                    stroke="#6366f1"
-                                    strokeWidth={1}
-                                    fill="url(#bbFill)"
-                                    strokeDasharray="4 4"
-                                    name="BB 하단"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="bb_middle"
-                                    stroke="#f59e0b"
-                                    strokeWidth={1.5}
-                                    dot={false}
-                                    strokeDasharray="6 3"
-                                    name="BB 중심(20MA)"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="close"
-                                    stroke="#22c55e"
-                                    strokeWidth={2.5}
-                                    dot={false}
-                                    name="종가"
-                                />
-                            </ComposedChart>
+                                <Bar dataKey="count" name="신호 수" radius={[6, 6, 0, 0]} fillOpacity={0.85}>
+                                    {chartData.map((entry, idx) => (
+                                        <rect key={idx} fill={entry.fill} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* 전략 분포 */}
+                {/* 전략 분포 리스트 */}
                 <div className="card">
                     <div className="card-header">
                         <div className="card-title">
                             <span className="card-title-icon">🎯</span>
-                            전략별 신호 분포
+                            전략 상세
                         </div>
-                        <span className="tag-chip">총 {analysisSummary.signals_found}건</span>
                     </div>
                     <div className="strategy-dist-list">
-                        {Object.entries(strategyMeta).map(([key, meta]) => {
-                            const count = analysisSummary.by_strategy[key] || 0;
-                            const pct = (count / analysisSummary.signals_found) * 100;
-                            return (
-                                <div className="strategy-dist-item" key={key}>
-                                    <div
-                                        className="strategy-dist-icon"
-                                        style={{ background: `${meta.color}22`, color: meta.color }}
-                                    >
-                                        {meta.icon}
-                                    </div>
-                                    <div className="strategy-dist-info">
-                                        <div className="strategy-dist-name">
-                                            <span>{meta.label} <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, fontSize: '0.78rem' }}>— {meta.fullName}</span></span>
-                                            <span className="strategy-dist-count" style={{ color: meta.color }}>{count}건</span>
+                        {Object.entries(strategyMeta)
+                            .filter(([key]) => ['OMEGA-R', 'ALPHA-S', 'SIGMA-T'].includes(key))
+                            .map(([key, meta]) => {
+                                const count = summary?.by_strategy?.[key] || 0;
+                                const pct = totalSignals > 0 ? (count / totalSignals) * 100 : 0;
+                                return (
+                                    <div className="strategy-dist-item" key={key}>
+                                        <div
+                                            className="strategy-dist-icon"
+                                            style={{ background: `${meta.color}22`, color: meta.color }}
+                                        >
+                                            {meta.icon}
                                         </div>
-                                        <div className="strategy-dist-desc">{meta.description}</div>
-                                        <div className="strategy-dist-bar">
-                                            <div
-                                                className="strategy-dist-fill"
-                                                style={{ width: `${pct}%`, background: meta.gradient }}
-                                            />
+                                        <div className="strategy-dist-info">
+                                            <div className="strategy-dist-name">
+                                                <span>{meta.label} <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, fontSize: '0.78rem' }}>— {meta.fullName}</span></span>
+                                                <span className="strategy-dist-count" style={{ color: meta.color }}>{count}건 ({pct.toFixed(1)}%)</span>
+                                            </div>
+                                            <div className="strategy-dist-desc">{meta.description}</div>
+                                            <div className="strategy-dist-bar">
+                                                <div
+                                                    className="strategy-dist-fill"
+                                                    style={{ width: `${pct}%`, background: meta.gradient }}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
                 </div>
 
-                {/* 거래량 차트 */}
+                {/* 날짜별 신호 추이 */}
                 <div className="card dashboard-full">
                     <div className="card-header">
                         <div className="card-title">
-                            <span className="card-title-icon">📊</span>
-                            거래량 추이
+                            <span className="card-title-icon">📈</span>
+                            날짜별 신호 추이
                         </div>
                     </div>
                     <div className="card-body">
                         <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={priceHistory}>
+                            <BarChart data={dates.slice(0, 20).reverse()}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                                 <XAxis
                                     dataKey="date"
-                                    tick={{ fill: '#64748b', fontSize: 11 }}
+                                    tick={{ fill: '#64748b', fontSize: 10 }}
                                     axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
                                     tickLine={false}
+                                    tickFormatter={(v) => v.slice(5)}
                                 />
                                 <YAxis
                                     tick={{ fill: '#64748b', fontSize: 11 }}
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={(v) => (v / 1000000).toFixed(0) + 'M'}
                                 />
                                 <Tooltip content={<ChartTooltip />} />
-                                <Bar dataKey="volume" name="거래량" fill="#6366f1" radius={[4, 4, 0, 0]} fillOpacity={0.7} />
+                                <Bar dataKey="count" name="신호 수" fill="#6366f1" radius={[4, 4, 0, 0]} fillOpacity={0.7} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
             </div>
 
-            {/* 신호 테이블 — 최근 감지 */}
+            {/* 신호 테이블 */}
             <div className="card">
                 <div className="card-header">
                     <div className="card-title">
                         <span className="card-title-icon">⚡</span>
-                        최근 감지된 전략 신호
+                        {latestDate} 감지된 전략 신호
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span className="live-indicator">
-                            <span className="live-dot" />
-                            실시간
-                        </span>
-                    </div>
+                    <span className="tag-chip">{topSignals.length}건</span>
                 </div>
                 <div className="card-body-np">
                     <table className="signal-table">
                         <thead>
                             <tr>
                                 <th>종목</th>
+                                <th>업종</th>
                                 <th>전략</th>
-                                <th>스코어</th>
-                                <th>현재가</th>
+                                <th>시가</th>
+                                <th>고가</th>
+                                <th>저가</th>
+                                <th>종가</th>
                                 <th>등락률</th>
-                                <th>거래량</th>
-                                <th>판별 근거</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {topSignals.map((s, i) => (
-                                <tr key={i}>
-                                    <td>
-                                        <div className="signal-name">{s.name}</div>
-                                        <div className="signal-ticker">{s.ticker}</div>
-                                    </td>
-                                    <td>
-                                        <span className={`strategy-badge ${s.strategy}`}>
-                                            {strategyMeta[s.strategy]?.icon} {s.strategy}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="score-bar-container">
-                                            <span className="signal-score" style={{ color: strategyMeta[s.strategy]?.color }}>
-                                                {s.score.toFixed(2)}
+                            {topSignals.map((s, i) => {
+                                const change = calcChange(s);
+                                const meta = strategyMeta[s.strategy];
+                                return (
+                                    <tr key={i}>
+                                        <td>
+                                            <div className="signal-name">{s.stock_name}</div>
+                                        </td>
+                                        <td>
+                                            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{s.wics_name}</span>
+                                        </td>
+                                        <td>
+                                            <span className={`strategy-badge ${s.strategy}`}>
+                                                {meta?.icon} {s.strategy}
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td className="signal-price">{s.close.toLocaleString()}원</td>
-                                    <td>
-                                        <span className={`signal-change ${s.change >= 0 ? 'change-up' : 'change-down'}`}>
-                                            {s.change >= 0 ? '+' : ''}{s.change}%
-                                        </span>
-                                    </td>
-                                    <td className="signal-volume">{(s.volume / 10000).toFixed(0)}만</td>
-                                    <td className="signal-reason">{s.reason}</td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="signal-price">{s.open?.toLocaleString()}</td>
+                                        <td className="signal-price" style={{ color: '#22c55e' }}>{s.high?.toLocaleString()}</td>
+                                        <td className="signal-price" style={{ color: '#ef4444' }}>{s.low?.toLocaleString()}</td>
+                                        <td className="signal-price" style={{ fontWeight: 600 }}>{s.close?.toLocaleString()}</td>
+                                        <td>
+                                            <span className={`signal-change ${change >= 0 ? 'change-up' : 'change-down'}`}>
+                                                {change >= 0 ? '▲' : '▼'} {Math.abs(change)}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

@@ -80,7 +80,9 @@
 }
 
 /* ── Reset & Base ── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -106,13 +108,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -478,10 +483,21 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.stat-card:nth-child(1)::before { background: var(--accent-indigo); }
-.stat-card:nth-child(2)::before { background: var(--accent-amber); }
-.stat-card:nth-child(3)::before { background: var(--accent-emerald); }
-.stat-card:nth-child(4)::before { background: var(--accent-red); }
+.stat-card:nth-child(1)::before {
+  background: var(--accent-indigo);
+}
+
+.stat-card:nth-child(2)::before {
+  background: var(--accent-amber);
+}
+
+.stat-card:nth-child(3)::before {
+  background: var(--accent-emerald);
+}
+
+.stat-card:nth-child(4)::before {
+  background: var(--accent-red);
+}
 
 .stat-card:hover {
   border-color: var(--border-default);
@@ -599,14 +615,17 @@ body {
   background: rgba(99, 102, 241, 0.15);
   color: #818cf8;
 }
+
 .strategy-badge.ALPHA-S {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
 }
+
 .strategy-badge.SIGMA-T {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
+
 .strategy-badge.Piercing {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
@@ -795,8 +814,17 @@ body {
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-  50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
 }
 
 .live-indicator {
@@ -899,8 +927,15 @@ body {
 }
 
 @keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Score bar ── */
@@ -929,9 +964,11 @@ body {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
   .config-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -941,53 +978,69 @@ body {
   .sidebar {
     transform: translateX(-100%);
   }
+
   .sidebar.open {
     transform: translateX(0);
   }
+
   .sidebar-overlay.open {
     display: block;
   }
+
   .main-area {
     margin-left: 0;
   }
+
   .mobile-menu-btn {
     display: block;
   }
+
   .content {
     padding: var(--space-md);
   }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-sm);
   }
+
   .stat-card {
     padding: var(--space-md);
   }
+
   .stat-card-value {
     font-size: 1.35rem;
   }
+
   .market-bar {
     gap: var(--space-sm);
   }
+
   .header-search input {
     width: 160px;
   }
+
   .header-search input:focus {
     width: 200px;
   }
+
   .header-profile-name {
     display: none;
   }
+
   .signal-table {
     display: block;
     overflow-x: auto;
   }
+
   .dashboard-grid {
     gap: var(--space-md);
   }
+
   .config-grid {
     grid-template-columns: 1fr;
   }
+
   .header-subtitle {
     display: none;
   }
@@ -997,16 +1050,60 @@ body {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+
   .stat-card-header {
     flex-direction: row-reverse;
   }
+
   .stat-card-label {
     text-align: left;
   }
+
   .header-search {
     display: none;
   }
+
   .market-bar-item {
     padding: 6px 12px;
+  }
+}
+
+/* ── Date Select ── */
+.date-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 6px 14px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  appearance: auto;
+}
+
+.date-select:focus {
+  border-color: var(--border-active);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.date-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ── Spin Icon Animation ── */
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }
