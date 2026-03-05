@@ -59,3 +59,13 @@ export function getSupplyDates() {
 export function getFetchedAt() {
     return dbData.fetchedAt;
 }
+
+// ─── 주요지수 ───
+export function getMarketIndices() {
+    return dbData.indices || {};
+}
+
+// ─── 주요테마 ───
+export function getTopThemes() {
+    return dbData.topThemes || [];
+}

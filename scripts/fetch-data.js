@@ -89,6 +89,143 @@ async function main() {
         FROM visual.vsl_macd_btm_supply
     `);
 
+    // ─── 3. 주요지수 ───
+    console.log('📈 주요지수 데이터 수집 중...');
+
+    // KOSPI
+    const kospiData = await client.query(`
+      SELECT to_char(date, 'YYYY-MM-DD') as date,
+             closing_price::numeric AS close
+        FROM market.krx_stocks_kospi_index
+       WHERE date >= current_date - interval '1 year'
+       ORDER BY date DESC
+    `);
+    console.log('   KOSPI: ' + kospiData.rows.length + '건');
+
+    // KOSDAQ
+    const kosdaqData = await client.query(`
+      SELECT to_char(date, 'YYYY-MM-DD') as date,
+             closing_price::numeric AS close
+        FROM market.krx_stocks_kosdaq_index
+       WHERE date >= current_date - interval '1 year'
+       ORDER BY date DESC
+    `);
+    console.log('   KOSDAQ: ' + kosdaqData.rows.length + '건');
+
+    // S&P 500
+    const sp500Data = await client.query(`
+      SELECT to_char(date, 'YYYY-MM-DD') as date,
+             close AS value
+        FROM market.kis_major_market_index
+       WHERE date >= current_date - interval '1 year'
+         AND code = 'SPX'
+       ORDER BY date DESC
+    `);
+    console.log('   S&P 500: ' + sp500Data.rows.length + '건');
+
+    // NASDAQ
+    const nasdaqData = await client.query(`
+      SELECT to_char(date, 'YYYY-MM-DD') as date,
+             close AS value
+        FROM market.kis_major_market_index
+       WHERE date >= current_date - interval '1 year'
+         AND code = 'COMP'
+       ORDER BY date DESC
+    `);
+    console.log('   NASDAQ: ' + nasdaqData.rows.length + '건');
+
+    // 다우존스
+    const dowData = await client.query(`
+      SELECT to_char(date, 'YYYY-MM-DD') as date,
+             close AS value
+        FROM market.kis_major_market_index
+       WHERE date >= current_date - interval '1 year'
+         AND code = '.DJI'
+       ORDER BY date DESC
+    `);
+    console.log('   다우존스: ' + dowData.rows.length + '건');
+
+    // 주요지수 데이터 가공 함수
+    function processIndex(name, rows, valueKey = 'value') {
+      if (rows.length === 0) return { name, current: null, prev: null, change: 0, changePercent: 0, sparkline: [] };
+      const current = parseFloat(rows[0][valueKey]);
+      const prev = rows.length > 1 ? parseFloat(rows[1][valueKey]) : current;
+      const change = current - prev;
+      const changePercent = prev !== 0 ? ((change / prev) * 100) : 0;
+      const sparkline = rows.slice(0, 60).reverse().map(r => ({
+        date: r.date,
+        value: parseFloat(r[valueKey]),
+      }));
+      return {
+        name,
+        date: rows[0].date,
+        current: parseFloat(current.toFixed(2)),
+        prev: parseFloat(prev.toFixed(2)),
+        change: parseFloat(change.toFixed(2)),
+        changePercent: parseFloat(changePercent.toFixed(2)),
+        sparkline,
+      };
+    }
+
+    const kospiKey = 'close';
+    const kosdaqKey = 'close';
+
+    const indicesOutput = {
+      kospi: processIndex('KOSPI', kospiData.rows, kospiKey),
+      kosdaq: processIndex('KOSDAQ', kosdaqData.rows, kosdaqKey),
+      sp500: processIndex('S&P 500', sp500Data.rows, 'value'),
+      nasdaq: processIndex('NASDAQ', nasdaqData.rows, 'value'),
+      dow: processIndex('다우존스', dowData.rows, 'value'),
+    };
+    console.log('✅ 주요지수 데이터 수집 완료');
+
+    // ─── 4. 주요테마 (상위 5개) ───
+    console.log('🏷️  주요테마 데이터 수집 중...');
+    const topThemesData = await client.query(`
+      WITH LATEST_DATE AS (
+          SELECT MAX(date) AS max_date
+          FROM visual.vsl_naver_theme
+      ),
+      theme_weighted_return AS (
+          SELECT
+              theme_name,
+              date,
+              SUM(cls_chg_rt * cap) / NULLIF(SUM(cap), 0) AS weighted_cls_chg_rt
+          FROM visual.vsl_naver_theme, LATEST_DATE
+          WHERE date = LATEST_DATE.max_date
+          GROUP BY theme_name, date
+      ),
+      ranked_theme AS (
+          SELECT
+              theme_name,
+              date,
+              weighted_cls_chg_rt,
+              RANK() OVER (ORDER BY weighted_cls_chg_rt DESC) AS ranking
+          FROM theme_weighted_return
+      ),
+      top_themes AS (
+          SELECT theme_name, date, ranking
+          FROM ranked_theme
+          WHERE ranking <= 5
+      )
+      SELECT
+          t.ranking,
+          v.theme_name AS theme,
+          to_char(t.date, 'YYYY-MM-DD') AS date,
+          ROUND(SUM(v.cls_chg_rt * v.cap) / NULLIF(SUM(v.cap), 0), 2) AS yield
+      FROM visual.vsl_naver_theme v
+      JOIN top_themes t ON v.theme_name = t.theme_name AND v.date = t.date
+      GROUP BY t.ranking, v.theme_name, t.date
+      ORDER BY t.ranking ASC
+    `);
+    const topThemesOutput = topThemesData.rows.map(r => ({
+      ranking: parseInt(r.ranking),
+      theme: r.theme,
+      date: r.date,
+      yield: parseFloat(r.yield),
+    }));
+    console.log('✅ 주요테마 데이터 수집 완료: ' + topThemesOutput.length + '건');
+
     // ─── JSON 저장 ───
     const output = {
       fetchedAt: new Date().toISOString(),
@@ -109,6 +246,12 @@ async function main() {
         dates: supplyDates.rows,
         data: supplyData.rows,
       },
+
+      // 주요지수
+      indices: indicesOutput,
+
+      // 주요테마
+      topThemes: topThemesOutput,
     };
 
     const outDir = path.join(__dirname, '..', 'src', 'data');

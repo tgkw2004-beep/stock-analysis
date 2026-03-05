@@ -4,6 +4,8 @@ import {
 import { Scan, Clock } from 'lucide-react';
 import { strategyMeta } from '../data/sampleData';
 import { getQuantSummary, getQuantDates, getQuantStrategies, getSupplySummary } from '../services/apiService';
+import MarketIndices from '../components/MarketIndices';
+import TopThemes from '../components/TopThemes';
 
 function ChartTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -33,6 +35,12 @@ export default function Dashboard() {
 
     return (
         <div className="page-enter">
+            {/* 주요지수 */}
+            <MarketIndices />
+
+            {/* 주요테마 */}
+            <TopThemes />
+
             {/* 분석 날짜 바 */}
             <div className="market-bar">
                 <div className="market-bar-item">
