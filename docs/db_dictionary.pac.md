@@ -471,3 +471,29 @@ db_schema.json   ← 같은 디렉토리 (주식/db_schema.json)
 ```
 
 > 💡 AI 대화에서 활용 시: "db_schema.json에서 company.kis_auto_trade_buy 테이블의 컬럼 구조를 확인해줘" 라고 요청하면 됩니다.
+
+---
+
+## 10. Strict Rules for Deterministic SQL Generation (결정론적 SQL 생성 규칙)
+
+다양한 개발 환경(Node.js, Python, Java)이나 서로 다른 AI 모델이 이 DB에 접근하여 쿼리를 작성할 때, **항상 동일하고 예측 가능한 결과**를 보장하기 위해 다음 규칙을 **반드시** 준수해야 합니다.
+
+1. **스키마 명시 (Explicit Schema Prefix)**
+   - 테이블을 참조할 때는 이름만 쓰지 말고 **반드시 스키마명을 접두사로 포함**하세요.
+   - ❌ `SELECT * FROM krx_stocks_kospi_index`
+   - ✅ `SELECT * FROM market.krx_stocks_kospi_index`
+2. **날짜 포맷 고정 (Deterministic Date Formatting)**
+   - 드라이버마다 Date 타입 처리 방식(Timezone 등)이 다를 수 있으므로, 날짜 반환 시 항상 문자열로 변환합니다.
+   - ✅ `TO_CHAR(date, 'YYYY-MM-DD') AS date`
+3. **명시적 형변환 (Explicit Type Casting)**
+   - 텍스트 형태로 저장된 숫자 데이터(`data_value` 등)는 정렬이나 계산 시 오류를 방지하기 위해 명시적으로 캐스팅하세요.
+   - ✅ `data_value::numeric` 또는 `CAST(data_value AS numeric)`
+4. **정렬 및 행 수 제한 (ORDER BY & LIMIT)**
+   - 시계열 데이터를 다룰 때 `ORDER BY`가 없으면 DB의 기본 반환 순서에 의존하게 되어 환경에 따라 결과 순서가 뒤바뀔 수 있습니다. **반드시 명시적 기준(주로 `date DESC`)으로 정렬**하세요.
+   - 특정 개수의 최신 데이터가 필요하다면 반드시 `LIMIT N`을 명시하세요.
+5. **명확한 지수 테이블 구분 (Index Table Separation)**
+   - 코스피와 코스닥 지수를 조회할 때, 하나의 테이블에서 `WHERE` 조건으로 필터링하려고 시도하지 마세요. 두 지수는 **완전히 분리된 개별 테이블**에 존재합니다.
+   - 코스피: `market.krx_stocks_kospi_index`
+   - 코스닥: `market.krx_stocks_kosdaq_index`
+6. **컬럼 별칭 사용 (Clear Aliasing)**
+   - `closing_price` 등 이름이 긴 컬럼이나, 함수를 거친 컬럼은 항상 명확한 짧은 별칭(`AS close`, `AS value`)을 지정하여 애플리케이션 코드(JSON 매핑 등)에서 일관되게 파싱할 수 있게 하세요.
