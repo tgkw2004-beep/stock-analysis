@@ -306,6 +306,18 @@ visual.vsl_* 테이블들은 company/market 원천 데이터를 가공한 것
 → 반드시 WHERE 조건(특히 date)으로 범위 제한하여 쿼리!
 ```
 
+### 5.6 한국은행 ECOS 지표 테이블 주의사항
+```
+⚠️ 테이블마다 시계열 기준 컬럼이 다름:
+   market.ecos_currency_all     → date (일간 기준)
+   market.ecos_market_interest  → date (일간 기준)
+   market.ecos_sobi_mulga_all   → yyyymm (월간 기준, date 컬럼 없음!)
+
+✅ 공통 사항:
+   값은 `data_value` 컬럼에 문자열로 저장됨 → `data_value::numeric` 으로 형변환 필수
+   지표명 조건은 `item_name1` 로 지정 (예: '원/미국달러(매매기준율)', 'KORIBOR(3개월)', '총지수')
+```
+
 ## 6. Query Templates (쿼리 템플릿)
 
 ### 6.1 KOSPI 지수 조회
@@ -363,6 +375,24 @@ SELECT date, investor, stock_name,
    AND date >= current_date - interval '30 days'
    AND investor IN ('외국인', '기관합계')
  ORDER BY date DESC, investor;
+```
+
+### 6.6 기초경제지표 최신 값 조회 (한국은행 ECOS)
+```sql
+-- 환율, 금리 (일별 데이터)
+SELECT TO_CHAR(date, 'YYYY-MM-DD') AS date,
+       data_value::numeric AS value
+  FROM market.ecos_currency_all
+ WHERE item_name1 = '원/미국달러(매매기준율)' -- 환율
+-- FROM market.ecos_market_interest 
+-- WHERE item_name1 = 'KORIBOR(3개월)'   -- 금리
+ ORDER BY date DESC LIMIT 2;
+
+-- 물가 지수 (월별 데이터, date 대신 yyyymm 사용)
+SELECT yyyymm, data_value::numeric AS value
+  FROM market.ecos_sobi_mulga_all
+ WHERE item_name1 = '총지수'
+ ORDER BY yyyymm DESC LIMIT 2;
 ```
 
 ## 7. Variable Binding (변수 바인딩)
