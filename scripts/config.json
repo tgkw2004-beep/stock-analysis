@@ -1,0 +1,23 @@
+{
+  "pac_name": "Bollinger Band 3대 전략 & 이평선 관통 전략",
+  "version": "1.0",
+  "parameters": {
+    "squeeze_limit": 0.75,
+    "adx_threshold": 25,
+    "mfi_threshold": 80,
+    "target_date": "TODAY",
+    "market": "KOSPI",
+    "lookback_days": 130
+  },
+  "strategy_priority": [
+    "OMEGA-R",
+    "Piercing",
+    "ALPHA-S",
+    "SIGMA-T"
+  ],
+  "output": {
+    "precision": 4,
+    "format": "json",
+    "include_fields": ["ticker", "name", "strategy", "score", "reason"]
+  }
+}
