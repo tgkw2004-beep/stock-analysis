@@ -226,6 +226,79 @@ async function main() {
     }));
     console.log('✅ 주요테마 데이터 수집 완료: ' + topThemesOutput.length + '건');
 
+    // ─── 4. 기초경제지표 ───
+    console.log('기초경제지표 데이터 조회 중...');
+    const ecoMap = {};
+
+    // 환율 (원/달러)
+    const usdData = await client.query(`
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, data_value::numeric as value
+      FROM market.ecos_currency_all
+      WHERE item_name1 = '원/미국달러(매매기준율)'
+      ORDER BY date DESC LIMIT 2
+    `);
+    if (usdData.rows.length >= 2) {
+      const cur = parseFloat(usdData.rows[0].value);
+      const prev = parseFloat(usdData.rows[1].value);
+      ecoMap['원/달러'] = {
+        name: '원/달러', value: cur, change: cur - prev,
+        changePercent: ((cur - prev) / prev) * 100, suffix: '원', date: usdData.rows[0].date
+      };
+    }
+
+    // 환율 (원/엔)
+    const jpyData = await client.query(`
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, data_value::numeric as value
+      FROM market.ecos_currency_all
+      WHERE item_name1 = '원/일본엔(100엔)'
+      ORDER BY date DESC LIMIT 2
+    `);
+    if (jpyData.rows.length >= 2) {
+      const cur = parseFloat(jpyData.rows[0].value);
+      const prev = parseFloat(jpyData.rows[1].value);
+      ecoMap['원/엔'] = {
+        name: '원/엔', value: cur, change: cur - prev,
+        changePercent: ((cur - prev) / prev) * 100, suffix: '원', date: jpyData.rows[0].date
+      };
+    }
+
+    // 금리 (KORIBOR 3개월)
+    const rateData = await client.query(`
+      SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, data_value::numeric as value
+      FROM market.ecos_market_interest
+      WHERE item_name1 = 'KORIBOR(3개월)'
+      ORDER BY date DESC LIMIT 2
+    `);
+    if (rateData.rows.length >= 2) {
+      const cur = parseFloat(rateData.rows[0].value);
+      const prev = parseFloat(rateData.rows[1].value);
+      ecoMap['KORIBOR 3M'] = {
+        name: '단기금리(KORIBOR)', value: cur, change: cur - prev,
+        changePercent: ((cur - prev) / prev) * 100, suffix: '%', date: rateData.rows[0].date
+      };
+    }
+
+    // 소비자물가 총지수
+    const cpiData = await client.query(`
+      SELECT yyyymm as date, data_value::numeric as value
+      FROM market.ecos_sobi_mulga_all
+      WHERE item_name1 = '총지수'
+      ORDER BY yyyymm DESC LIMIT 2
+    `);
+    if (cpiData.rows.length >= 2) {
+      const cur = parseFloat(cpiData.rows[0].value);
+      const prev = parseFloat(cpiData.rows[1].value);
+      const dateStr = cpiData.rows[0].date;
+      const formattedDate = dateStr.substring(0, 4) + '-' + dateStr.substring(4, 6);
+      ecoMap['소비자물가'] = {
+        name: '소비자물가', value: cur, change: cur - prev,
+        changePercent: ((cur - prev) / prev) * 100, suffix: 'pt', date: formattedDate
+      };
+    }
+
+    const economicIndicators = [ecoMap['원/달러'], ecoMap['원/엔'], ecoMap['KORIBOR 3M'], ecoMap['소비자물가']].filter(Boolean);
+    console.log('✅ 기초경제지표 데이터 수집 완료: ' + economicIndicators.length + '건');
+
     // ─── JSON 저장 ───
     const output = {
       fetchedAt: new Date().toISOString(),
@@ -252,6 +325,9 @@ async function main() {
 
       // 주요테마
       topThemes: topThemesOutput,
+
+      // 기초경제지표
+      economicIndicators: economicIndicators,
     };
 
     const outDir = path.join(__dirname, '..', 'src', 'data');

@@ -69,3 +69,8 @@ export function getMarketIndices() {
 export function getTopThemes() {
     return dbData.topThemes || [];
 }
+
+// ─── 기초경제지표 ───
+export function getEconomicIndicators() {
+    return dbData.economicIndicators || [];
+}

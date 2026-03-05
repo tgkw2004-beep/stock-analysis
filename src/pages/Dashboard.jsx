@@ -6,6 +6,7 @@ import { strategyMeta } from '../data/sampleData';
 import { getQuantSummary, getQuantDates, getQuantStrategies, getSupplySummary } from '../services/apiService';
 import MarketIndices from '../components/MarketIndices';
 import TopThemes from '../components/TopThemes';
+import EconomicIndicators from '../components/EconomicIndicators';
 
 function ChartTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -40,6 +41,9 @@ export default function Dashboard() {
 
             {/* 주요테마 */}
             <TopThemes />
+
+            {/* 기초경제지표 */}
+            <EconomicIndicators />
 
             {/* 분석 날짜 바 */}
             <div className="market-bar">
