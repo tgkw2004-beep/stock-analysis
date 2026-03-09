@@ -1,7 +1,91 @@
 // 데이터 서비스 — 빌드타임 DB 데이터 사용
 import dbData from '../data/dbData.json';
 
-// ─── 퀀트 매수 전략 ───
+const API_BASE_URL = 'http://localhost:3001';
+
+// ─── 퀀트 매수 전략 비동기 API ───
+export const fetchQuantStrategies = async ({ strategy = 'ALL', date, sort = 'date', order = 'desc' } = {}) => {
+    try {
+        const query = new URLSearchParams({ strategy, sort, order });
+        if (date) query.append('date', date);
+        const res = await fetch(`${API_BASE_URL}/api/strategies?${query.toString()}`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data.data || [];
+    } catch (err) {
+        console.error('Failed to fetch quant strategies:', err);
+        return [];
+    }
+};
+
+export const fetchQuantSummary = async (date) => {
+    try {
+        const query = new URLSearchParams();
+        if (date) query.append('date', date);
+        const res = await fetch(`${API_BASE_URL}/api/strategies/summary?${query.toString()}`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data;
+    } catch (err) {
+        console.error('Failed to fetch quant summary:', err);
+        return { total: 0, by_strategy: {}, date_range: {} };
+    }
+};
+
+export const fetchQuantDates = async () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/strategies/dates`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data.dates || [];
+    } catch (err) {
+        console.error('Failed to fetch quant dates:', err);
+        return [];
+    }
+};
+
+// ─── 반등 수급 매매 비동기 API ───
+export const fetchSupplyStrategies = async ({ date, sort = 'val_rank', order = 'asc' } = {}) => {
+    try {
+        const query = new URLSearchParams({ sort, order });
+        if (date) query.append('date', date);
+        const res = await fetch(`${API_BASE_URL}/api/strategies/supply?${query.toString()}`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data.data || [];
+    } catch (err) {
+        console.error('Failed to fetch supply strategies:', err);
+        return [];
+    }
+};
+
+export const fetchSupplySummary = async (date) => {
+    try {
+        const query = new URLSearchParams();
+        if (date) query.append('date', date);
+        const res = await fetch(`${API_BASE_URL}/api/strategies/supply/summary?${query.toString()}`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data;
+    } catch (err) {
+        console.error('Failed to fetch supply summary:', err);
+        return { total: 0, abc_count: 0, accum_count: 0, supply_count: 0 };
+    }
+};
+
+export const fetchSupplyDates = async () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/strategies/supply/dates`);
+        if (!res.ok) throw new Error('API fetch failed');
+        const data = await res.json();
+        return data.dates || [];
+    } catch (err) {
+        console.error('Failed to fetch supply dates:', err);
+        return [];
+    }
+};
+
+// ─── 퀀트 매수 전략 (기존 호환성) ───
 export function getQuantStrategies({ strategy, date, sort = 'date', order = 'desc' } = {}) {
     let filtered = [...dbData.quant.data];
     if (strategy && strategy !== 'ALL') filtered = filtered.filter(d => d.strategy === strategy);
@@ -60,17 +144,37 @@ export function getFetchedAt() {
     return dbData.fetchedAt;
 }
 
-// ─── 주요지수 ───
+// ─── 대시보드 API 연동 ───
+export async function fetchDashboardSummary() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/dashboard/summary`);
+        if (!response.ok) throw new Error('네트워크 응답이 올바르지 않습니다.');
+        const result = await response.json();
+        if (result.success) {
+            return result;
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        console.error('대시보드 요약 조회 실패:', error);
+        // 에러 시 기본값 반환
+        return {
+            indices: null,
+            topThemes: null,
+            economicIndicators: null
+        };
+    }
+}
+
+// ─── 하위 호환성 (리팩토링 과도기 에러 방지용) ───
 export function getMarketIndices() {
     return dbData.indices || {};
 }
 
-// ─── 주요테마 ───
 export function getTopThemes() {
     return dbData.topThemes || [];
 }
 
-// ─── 기초경제지표 ───
 export function getEconomicIndicators() {
     return dbData.economicIndicators || [];
 }

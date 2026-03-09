@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getSupplyStrategies, getSupplySummary, getSupplyDates } from '../services/apiService';
+import { fetchSupplyStrategies, fetchSupplySummary, fetchSupplyDates } from '../services/apiService';
 import { ArrowUpDown, TrendingUp, BarChart3, Zap, ShieldCheck } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -11,24 +11,61 @@ export default function SupplyStrategy() {
     const [filterAccum, setFilterAccum] = useState(false);
     const [filterSupply, setFilterSupply] = useState(false);
 
-    const dates = getSupplyDates();
+    const [dates, setDates] = useState([]);
+    const [summary, setSummary] = useState({ total: 0, abc_count: 0, accum_count: 0, supply_count: 0 });
+    const [signals, setSignals] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // 1. 초기 날짜 목록 로드
+    useEffect(() => {
+        const initFetch = async () => {
+            const fetchedDates = await fetchSupplyDates();
+            setDates(fetchedDates);
+            if (fetchedDates.length > 0) setSelectedDate(fetchedDates[0].date);
+        };
+        initFetch();
+    }, []);
+
+    // 2. 비동기 데이터 로드
+    useEffect(() => {
+        if (!selectedDate) return;
+        const loadData = async () => {
+            setLoading(true);
+            const [sumData, sigData] = await Promise.all([
+                fetchSupplySummary(selectedDate),
+                fetchSupplyStrategies({ date: selectedDate, sort: sortField, order: sortDir })
+            ]);
+            setSummary(sumData);
+            setSignals(sigData);
+            setCurrentPage(1); // Reset page on new data
+            setLoading(false);
+        };
+        loadData();
+    }, [selectedDate, sortField, sortDir]);
+
     const dateCounts = useMemo(() => {
         const m = {};
         dates.forEach(d => { m[d.date] = d.count; });
         return m;
-    }, []);
+    }, [dates]);
 
-    useEffect(() => {
-        if (dates.length > 0 && !selectedDate) setSelectedDate(dates[0].date);
-    }, []);
+    // 필터 적용 (프론트에서 로컬 필터링)
+    let filteredSignals = signals;
+    if (filterAbc) filteredSignals = filteredSignals.filter(s => s.abc_all === 'Y');
+    if (filterAccum) filteredSignals = filteredSignals.filter(s => s.accum_signal === 'Y');
+    if (filterSupply) filteredSignals = filteredSignals.filter(s => s.supply_buy === 'Y');
 
-    const summary = getSupplySummary(selectedDate);
-    let signals = getSupplyStrategies({ date: selectedDate, sort: sortField, order: sortDir });
+    const totalPages = Math.ceil(filteredSignals.length / itemsPerPage);
+    const currentSignals = filteredSignals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    // 필터 적용
-    if (filterAbc) signals = signals.filter(s => s.abc_all === 'Y');
-    if (filterAccum) signals = signals.filter(s => s.accum_signal === 'Y');
-    if (filterSupply) signals = signals.filter(s => s.supply_buy === 'Y');
+    // 로컬 필터 변경 시 페이지 넘침 방어
+    if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(1);
+    }
 
     const handleSort = (field) => {
         if (sortField === field) setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
@@ -80,13 +117,13 @@ export default function SupplyStrategy() {
                     <div className="stat-card-sub">프로그램 매집 감지 종목</div>
                 </div>
 
-                <div className="stat-card" style={{ cursor: 'pointer', borderColor: filterSupply ? '#6366f1' : undefined, boxShadow: filterSupply ? '0 0 20px rgba(99,102,241,0.2)' : undefined }}
+                <div className="stat-card" style={{ cursor: 'pointer', borderColor: filterSupply ? '#0ea5e9' : undefined, boxShadow: filterSupply ? '0 0 20px rgba(14,165,233,0.2)' : undefined }}
                     onClick={() => setFilterSupply(!filterSupply)}>
                     <div className="stat-card-header">
-                        <div className="stat-card-icon" style={{ background: 'rgba(99,102,241,0.15)', color: '#818cf8' }}><Zap size={20} /></div>
+                        <div className="stat-card-icon" style={{ background: 'rgba(14,165,233,0.15)', color: '#38bdf8' }}><Zap size={20} /></div>
                         <div className="stat-card-label">수급 유입</div>
                     </div>
-                    <div className="stat-card-value" style={{ color: '#818cf8' }}>{summary.supply_count}</div>
+                    <div className="stat-card-value" style={{ color: '#38bdf8' }}>{summary.supply_count}</div>
                     <div className="stat-card-sub">수급 유입 감지 종목</div>
                 </div>
 
@@ -135,26 +172,26 @@ export default function SupplyStrategy() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {signals.length === 0 ? (
+                                {currentSignals.length === 0 ? (
                                     <tr><td colSpan={13} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-tertiary)' }}>해당 조건에 맞는 데이터가 없습니다.</td></tr>
-                                ) : signals.map((s, i) => {
+                                ) : currentSignals.map((s, i) => {
                                     const zScore = parseFloat(s.z_score || 0);
                                     const progSupply = Number(s.program_supply || 0);
                                     const fiSupply = Number(s.foreign_inst_supply || 0);
+                                    const actualIndex = (currentPage - 1) * itemsPerPage + i + 1;
                                     return (
                                         <tr key={`${s.stock_code}-${i}`}>
-                                            <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>{i + 1}</td>
+                                            <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>{actualIndex}</td>
                                             <td>
                                                 <div className="signal-name">{s.stock_name}</div>
                                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{s.stock_code}</div>
                                             </td>
                                             <td>
-                                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                                    title={s.theme_names || ''}>
-                                                    {s.theme_names ? s.theme_names.split(',').slice(0, 2).join(', ') : '-'}
+                                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', wordBreak: 'keep-all', lineHeight: '1.4' }}>
+                                                    {s.theme_names ? s.theme_names.split(',').join(', ') : '-'}
                                                 </div>
                                             </td>
-                                            <td className="signal-price" style={{ fontWeight: 600 }}>{s.close?.toLocaleString()}</td>
+                                            <td className="signal-price" style={{ fontWeight: 600 }}>{Number(s.close || 0).toLocaleString()}</td>
                                             <td className="signal-price" style={{ fontSize: '0.82rem' }}>{formatMoney(s.trade_value)}</td>
                                             <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: s.val_top300 === 'Y' ? '#22c55e' : 'var(--text-secondary)' }}>
                                                 {s.val_rank || '-'}
@@ -182,8 +219,7 @@ export default function SupplyStrategy() {
                                             <td><span className={`signal-badge ${s.accum_signal === 'Y' ? 'badge-yes' : 'badge-no'}`}>{s.accum_signal}</span></td>
                                             <td><span className={`signal-badge ${s.supply_buy === 'Y' ? 'badge-yes' : 'badge-no'}`}>{s.supply_buy}</span></td>
                                             <td>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                                                    title={s.invest_strategy || ''}>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '280px', wordBreak: 'keep-all', lineHeight: '1.4' }}>
                                                     {s.invest_strategy || '-'}
                                                 </div>
                                             </td>
@@ -194,6 +230,26 @@ export default function SupplyStrategy() {
                         </table>
                     </div>
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="pagination">
+                        <button
+                            className="page-btn"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            이전
+                        </button>
+                        <span className="page-info">{currentPage} / {totalPages}</span>
+                        <button
+                            className="page-btn"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            다음
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

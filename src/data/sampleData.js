@@ -215,8 +215,8 @@ export const strategyMeta = {
   'OMEGA-R': {
     label: 'OMEGA-R',
     fullName: '리바운드 전략',
-    color: '#6366f1',
-    gradient: 'linear-gradient(135deg, #6366f1, #818cf8)',
+    color: '#0ea5e9',
+    gradient: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
     icon: '🔄',
     description: '하단밴드 터치 후 MACD Histogram 반등 감지',
   },

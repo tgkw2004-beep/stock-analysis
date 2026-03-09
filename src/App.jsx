@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import Strategies from './pages/Strategies';
 import SupplyStrategy from './pages/SupplyStrategy';
+import StockSearch from './pages/StockSearch';
 import Settings from './pages/Settings';
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
         return <Strategies />;
       case 'supply':
         return <SupplyStrategy />;
+      case 'stock-search':
+        return <StockSearch />;
       case 'settings':
         return <Settings />;
       default:
@@ -29,6 +32,7 @@ export default function App() {
     dashboard: '대시보드',
     quant: '퀀트 매수 전략',
     supply: '반등 수급 매매 전략',
+    'stock-search': '종목 검색',
     settings: '설정',
   };
 
@@ -51,10 +55,11 @@ export default function App() {
           title={pageTitle[activePage]}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         />
-        <main className="content page-enter" key={activePage}>
+        <main className="content page-enter" key={activePage} style={{ position: 'relative', zIndex: 1 }}>
           {renderPage()}
         </main>
       </div>
     </div>
   );
 }
+

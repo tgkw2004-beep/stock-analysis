@@ -1,9 +1,8 @@
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { getMarketIndices } from '../services/apiService';
 
 const INDEX_CONFIG = [
-    { key: 'kospi', label: 'KOSPI', icon: '🇰🇷', color: '#6366f1' },
+    { key: 'kospi', label: 'KOSPI', icon: '🇰🇷', color: '#0ea5e9' },
     { key: 'kosdaq', label: 'KOSDAQ', icon: '🇰🇷', color: '#a855f7' },
     { key: 'sp500', label: 'S&P 500', icon: '🇺🇸', color: '#f59e0b' },
     { key: 'nasdaq', label: 'NASDAQ', icon: '🇺🇸', color: '#06b6d4' },
@@ -24,8 +23,12 @@ function IndexCard({ config, data }) {
         );
     }
 
-    const isUp = data.change > 0;
-    const isDown = data.change < 0;
+    const currentVal = Number(data.current);
+    const changeVal = Number(data.change);
+    const changePctVal = Number(data.changePercent);
+
+    const isUp = changeVal > 0;
+    const isDown = changeVal < 0;
     const changeClass = isUp ? 'up' : isDown ? 'down' : 'neutral';
     const arrow = isUp ? '▲' : isDown ? '▼' : '—';
     const TrendIcon = isUp ? TrendingUp : isDown ? TrendingDown : Minus;
@@ -42,12 +45,12 @@ function IndexCard({ config, data }) {
             </div>
 
             <div className="index-card-value">
-                {data.current.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {currentVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
 
             <div className={`index-card-change ${changeClass}`}>
-                <span>{arrow} {Math.abs(data.change).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="index-card-pct">({data.changePercent >= 0 ? '+' : ''}{data.changePercent.toFixed(2)}%)</span>
+                <span>{arrow} {Math.abs(changeVal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="index-card-pct">({changePctVal >= 0 ? '+' : ''}{changePctVal.toFixed(2)}%)</span>
             </div>
 
             {data.sparkline && data.sparkline.length > 2 && (
@@ -75,8 +78,18 @@ function IndexCard({ config, data }) {
     );
 }
 
-export default function MarketIndices() {
-    const indices = getMarketIndices();
+export default function MarketIndices({ data, loading }) {
+    const indices = data;
+
+    if (loading) {
+        return (
+            <div className="market-indices-section">
+                <div className="market-indices-header">
+                    <span className="market-indices-title">📊 주요지수 (로딩중...)</span>
+                </div>
+            </div>
+        );
+    }
 
     if (!indices || Object.keys(indices).length === 0) {
         return null;

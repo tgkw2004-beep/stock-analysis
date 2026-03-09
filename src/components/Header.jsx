@@ -7,9 +7,19 @@ export default function Header({ title, onMenuClick }) {
                 <button className="mobile-menu-btn" onClick={onMenuClick}>
                     <Menu size={22} />
                 </button>
-                <div>
-                    <div className="header-title">{title}</div>
-                    <div className="header-subtitle">Bollinger Band 4대 전략 분석</div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div className="header-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                            background: 'var(--gradient-primary)',
+                            color: 'white',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 900,
+                            fontSize: '0.9rem',
+                            letterSpacing: '0.5px'
+                        }}>FINEX</div>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{title}</span>
+                    </div>
                 </div>
             </div>
             <div className="header-right">
@@ -22,8 +32,8 @@ export default function Header({ title, onMenuClick }) {
                     <span className="badge-dot" />
                 </button>
                 <div className="header-profile">
-                    <div className="header-avatar">Q</div>
-                    <span className="header-profile-name">QuantTrader</span>
+                    <div className="header-avatar">F</div>
+                    <span className="header-profile-name">FINEX</span>
                 </div>
             </div>
         </header>

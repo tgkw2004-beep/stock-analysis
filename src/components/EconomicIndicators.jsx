@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { getEconomicIndicators } from '../services/apiService';
+import React from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react';
 import '../index.css';
 
-const EconomicIndicators = () => {
-    const [indicators, setIndicators] = useState([]);
-
-    useEffect(() => {
-        try {
-            const data = getEconomicIndicators();
-            setIndicators(data || []);
-        } catch (err) {
-            console.error('기초경제지표 로드 실패:', err);
-        }
-    }, []);
+const EconomicIndicators = ({ indicators, loading }) => {
+    if (loading) {
+        return (
+            <div className="economic-indicators-container fade-in delay-200">
+                <div className="section-header">
+                    <h2 className="section-title">기초경제지표 <span>(로딩중...)</span></h2>
+                </div>
+            </div>
+        );
+    }
 
     if (!indicators || indicators.length === 0) {
         return null; // 데이터가 없으면 렌더링하지 않음
@@ -37,9 +35,13 @@ const EconomicIndicators = () => {
 
             <div className="indicators-row">
                 {indicators.map((item, idx) => {
-                    const isUp = item.change > 0;
-                    const isDown = item.change < 0;
-                    const isSame = item.change === 0;
+                    const currentVal = Number(item.value);
+                    const changeVal = Number(item.change);
+                    const changePctVal = Number(item.changePercent);
+
+                    const isUp = changeVal > 0;
+                    const isDown = changeVal < 0;
+                    const isSame = changeVal === 0;
 
                     return (
                         <div key={idx} className="indicator-item glass-panel hover-grow">
@@ -50,7 +52,7 @@ const EconomicIndicators = () => {
                             </div>
                             <div className="indicator-value-container">
                                 <span className="indicator-value">
-                                    {item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {currentVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     <span className="indicator-suffix">{item.suffix}</span>
                                 </span>
                             </div>
@@ -58,10 +60,10 @@ const EconomicIndicators = () => {
                             <div className={`indicator-change ${isUp ? 'text-up' : isDown ? 'text-down' : 'text-neutral'}`}>
                                 {isUp ? <TrendingUp size={14} /> : isDown ? <TrendingDown size={14} /> : null}
                                 <span className="change-value">
-                                    {isUp ? '+' : ''}{item.change.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {isUp ? '+' : ''}{changeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                                 <span className="change-percent">
-                                    ({isUp ? '+' : ''}{item.changePercent.toFixed(2)}%)
+                                    ({isUp ? '+' : ''}{changePctVal.toFixed(2)}%)
                                 </span>
                             </div>
                         </div>
