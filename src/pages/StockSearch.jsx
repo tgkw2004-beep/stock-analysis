@@ -188,6 +188,8 @@ export default function StockSearch() {
                     .then(r => r.json()).then(d => { if (d.success) setInvestorData(d.data); }),
                 fetch(`${API_BASE}/api/stocks/${code}/investors/daily`)
                     .then(r => r.json()).then(d => { if (d.success) setInvestorDailyData(d.data); }),
+                fetch(`${API_BASE}/api/stocks/${code}/foreign`)
+                    .then(r => r.json()).then(d => { if (d.success) setForeignData(d); }),
             );
         } else if (activeTab === 'financial') {
             fetches.push(
@@ -516,6 +518,24 @@ export default function StockSearch() {
                                             ) : <div className="no-data">상세 매매 내역이 없습니다.</div>}
                                         </div>
                                     </div>
+
+                                    {/* 외국인 보유비율 추이 (네트워크 탭에서 이동) */}
+                                    {foreignData?.foreign?.length > 0 && (
+                                        <div className="card" style={{ marginTop: 'var(--space-lg)' }}>
+                                            <div className="card-header"><div className="card-title">🌍 외국인 보유비율 추이</div></div>
+                                            <div className="card-body">
+                                                <ResponsiveContainer width="100%" height={250}>
+                                                    <AreaChart data={foreignData.foreign}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                        <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
+                                                        <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} unit="%" />
+                                                        <Tooltip content={<ChartTooltip />} />
+                                                        <Area type="monotone" dataKey="foreign_ratio" name="외국인 비율(%)" stroke="#0ea5e9" fill="rgba(14,165,233,0.15)" strokeWidth={2} dot={false} />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -599,24 +619,6 @@ export default function StockSearch() {
                             {/* ④ 네트워크 탭 */}
                             {activeTab === 'network' && foreignData && (
                                 <div className="tab-network">
-                                    {/* 외국인 보유 추이 */}
-                                    {foreignData.foreign?.length > 0 && (
-                                        <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-                                            <div className="card-header"><div className="card-title">🌍 외국인 보유비율 추이</div></div>
-                                            <div className="card-body">
-                                                <ResponsiveContainer width="100%" height={250}>
-                                                    <AreaChart data={foreignData.foreign}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                                        <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
-                                                        <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} unit="%" />
-                                                        <Tooltip content={<ChartTooltip />} />
-                                                        <Area type="monotone" dataKey="foreign_ratio" name="외국인 비율(%)" stroke="#0ea5e9" fill="rgba(14,165,233,0.15)" strokeWidth={2} dot={false} />
-                                                    </AreaChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {/* 공매도 */}
                                     {foreignData.shortSelling?.length > 0 && (
                                         <div className="card">
