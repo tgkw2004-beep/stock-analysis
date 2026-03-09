@@ -103,6 +103,21 @@ body {
   overflow-x: hidden;
 }
 
+/* ── Typography Utilities ── */
+.text-up {
+  color: #ef4444 !important;
+}
+
+/* Red for Positive/Buy */
+.text-down {
+  color: #3b82f6 !important;
+}
+
+/* Blue for Negative/Sell */
+.text-neutral {
+  color: var(--text-tertiary);
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
@@ -1084,7 +1099,26 @@ body {
   padding: 14px var(--space-lg);
   font-size: 0.88rem;
   border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
   vertical-align: middle;
+}
+
+.signal-table thead th {
+  text-align: left;
+  padding: 12px var(--space-lg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.signal-table thead th:last-child,
+.signal-table tbody td:last-child {
+  border-right: none;
 }
 
 .signal-table tbody tr:last-child td {

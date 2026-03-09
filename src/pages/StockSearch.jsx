@@ -125,6 +125,7 @@ export default function StockSearch() {
     const [chartData, setChartData] = useState([]);
     const [stockInfo, setStockInfo] = useState(null);
     const [investorData, setInvestorData] = useState([]);
+    const [investorDailyData, setInvestorDailyData] = useState([]);
     const [financialData, setFinancialData] = useState(null);
     const [foreignData, setForeignData] = useState(null);
     const [themeData, setThemeData] = useState(null);
@@ -185,6 +186,8 @@ export default function StockSearch() {
                     .then(r => r.json()).then(d => { if (d.success) setChartData(d.data); }),
                 fetch(`${API_BASE}/api/stocks/${code}/investors`)
                     .then(r => r.json()).then(d => { if (d.success) setInvestorData(d.data); }),
+                fetch(`${API_BASE}/api/stocks/${code}/investors/daily`)
+                    .then(r => r.json()).then(d => { if (d.success) setInvestorDailyData(d.data); }),
             );
         } else if (activeTab === 'financial') {
             fetches.push(
@@ -470,40 +473,47 @@ export default function StockSearch() {
                                         </div>
                                     </div>
 
-                                    {/* 투자자별 매매동향 */}
+                                    {/* 투자자별 매매동향 내역 (테이블) */}
                                     <div className="card">
-                                        <div className="card-header"><div className="card-title">👥 투자자별 순매수 동향 (최근 60일)</div></div>
-                                        <div className="card-body">
-                                            {investorData.length > 0 ? (() => {
-                                                // 날짜별로 그룹핑
-                                                const byDate = {};
-                                                investorData.forEach(d => {
-                                                    if (!byDate[d.date]) byDate[d.date] = {};
-                                                    byDate[d.date][d.investor] = d.net_amt;
-                                                });
-                                                const sorted = Object.keys(byDate).sort();
-                                                const pivoted = sorted.map(date => ({
-                                                    date,
-                                                    '외국인': byDate[date]['외국인'] || 0,
-                                                    '기관합계': byDate[date]['기관합계'] || 0,
-                                                    '개인': byDate[date]['개인'] || 0,
-                                                }));
-                                                return (
-                                                    <ResponsiveContainer width="100%" height={300}>
-                                                        <LineChart data={pivoted}>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                                            <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
-                                                            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} tickFormatter={v => fmtBig(v)} />
-                                                            <Tooltip content={<ChartTooltip />} />
-                                                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
-                                                            <Line type="monotone" dataKey="외국인" stroke="#0ea5e9" dot={false} strokeWidth={2} />
-                                                            <Line type="monotone" dataKey="기관합계" stroke="#f59e0b" dot={false} strokeWidth={2} />
-                                                            <Line type="monotone" dataKey="개인" stroke="#22c55e" dot={false} strokeWidth={2} />
-                                                            <Legend />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                );
-                                            })() : <div className="no-data">투자자별 매매 데이터가 없습니다.</div>}
+                                        <div className="card-header">
+                                            <div className="card-title">📋 투자자별 순매수 거래량 (최근 20일)</div>
+                                        </div>
+                                        <div className="card-body-np">
+                                            {investorDailyData.length > 0 ? (
+                                                <table className="signal-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th rowSpan="2">일자</th>
+                                                            <th rowSpan="2">개인</th>
+                                                            <th colSpan="3" style={{ textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', borderLeft: '1px solid var(--border-subtle)' }}>외국인 + 기관</th>
+                                                        </tr>
+                                                        <tr>
+                                                            <th style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>합계</th>
+                                                            <th>외국인</th>
+                                                            <th>기관합계</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {investorDailyData.map((d, i) => (
+                                                            <tr key={i}>
+                                                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{d.date}</td>
+                                                                <td className={d.individual > 0 ? 'text-up' : d.individual < 0 ? 'text-down' : ''} style={{ fontWeight: 600 }}>
+                                                                    {fmtBig(d.individual)}
+                                                                </td>
+                                                                <td className={d.total_fi > 0 ? 'text-up' : d.total_fi < 0 ? 'text-down' : ''} style={{ fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                                                    {fmtBig(d.total_fi)}
+                                                                </td>
+                                                                <td className={d.foreign > 0 ? 'text-up' : d.foreign < 0 ? 'text-down' : ''} style={{ fontWeight: 500, fontSize: '0.9rem', opacity: 0.9 }}>
+                                                                    {fmtBig(d.foreign)}
+                                                                </td>
+                                                                <td className={d.institutional > 0 ? 'text-up' : d.institutional < 0 ? 'text-down' : ''} style={{ fontWeight: 500, fontSize: '0.9rem', opacity: 0.9 }}>
+                                                                    {fmtBig(d.institutional)}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            ) : <div className="no-data">상세 매매 내역이 없습니다.</div>}
                                         </div>
                                     </div>
                                 </div>

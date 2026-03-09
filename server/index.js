@@ -691,7 +691,7 @@ app.get('/api/stocks/:code/chart', async (req, res) => {
     }
 });
 
-// 4. 투자자별 매매동향
+// 4. 투자자별 매매동향 (전체 리스트 - 차트용)
 app.get('/api/stocks/:code/investors', async (req, res) => {
     try {
         const { code } = req.params;
@@ -715,6 +715,43 @@ app.get('/api/stocks/:code/investors', async (req, res) => {
         res.json({ success: true, data: result.rows });
     } catch (err) {
         console.error('Error in /api/stocks/:code/investors:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// 4-1. 투자자별 일별 순매수 테이블용 (피벗 데이터)
+app.get('/api/stocks/:code/investors/daily', async (req, res) => {
+    try {
+        const { code } = req.params;
+
+        // 최근 20일간의 데이터를 가져와서 피벗
+        const result = await pool.query(`
+            WITH daily_data AS (
+                SELECT date,
+                       investor,
+                       net_trade_vol::bigint AS net_vol
+                  FROM company.krx_stocks_investor_shares_trading_info
+                 WHERE code = $1
+                   AND investor IN ('외국인', '기관합계', '개인')
+                 ORDER BY date DESC
+                 LIMIT 60 -- 3개 주체 * 20일 = 60행 예상
+            )
+            SELECT to_char(date, 'YYYY-MM-DD') AS date,
+                   MAX(CASE WHEN investor = '개인' THEN net_vol END) AS individual,
+                   MAX(CASE WHEN investor = '외국인' THEN net_vol END) AS foreign,
+                   MAX(CASE WHEN investor = '기관합계' THEN net_vol END) AS institutional,
+                   -- 외국인 + 기관합계: (외국인 + 기관)
+                   COALESCE(MAX(CASE WHEN investor = '외국인' THEN net_vol END), 0) + 
+                    COALESCE(MAX(CASE WHEN investor = '기관합계' THEN net_vol END), 0) AS total_fi
+              FROM daily_data
+             GROUP BY date
+             ORDER BY date DESC
+             LIMIT 20
+        `, [code]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (err) {
+        console.error('Error in /api/stocks/:code/investors/daily:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
