@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-    Search, TrendingUp, BarChart3, DollarSign, Globe, Tag,
-    ArrowUpRight, ArrowDownRight, Minus, Loader2, X,
+    Search, TrendingUp, TrendingDown, Info, BarChart3, PieChart, Activity, Layers, Globe, Star, ChevronRight, X, ArrowUpDown, ChevronDown, Monitor, Map, Users, DollarSign, Tag,
+    ArrowUpRight, ArrowDownRight, Minus, Loader2,
 } from 'lucide-react';
 import {
     ComposedChart, Line, Bar, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, ReferenceLine, Legend,
-    AreaChart, BarChart, LineChart, Cell,
+    AreaChart, BarChart, LineChart, Cell, Scatter,
 } from 'recharts';
+import ForceGraph2D from 'react-force-graph-2d';
+import * as d3 from 'd3-force';
 
 const API_BASE = 'http://localhost:3001';
 
@@ -129,9 +131,36 @@ export default function StockSearch() {
     const [financialData, setFinancialData] = useState(null);
     const [foreignData, setForeignData] = useState(null);
     const [themeData, setThemeData] = useState(null);
+    const [relationshipData, setRelationshipData] = useState(null);
+
+    const [graphDims, setGraphDims] = useState({ width: 800, height: 500 });
+    const graphContainerRef = useRef(null);
 
     const searchRef = useRef(null);
     const debouncedQuery = useDebounce(query, 300);
+
+    useEffect(() => {
+        if (!graphContainerRef.current) return;
+        const resizeObserver = new ResizeObserver(entries => {
+            if (!entries || entries.length === 0) return;
+            const entry = entries[0];
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0) {
+                setGraphDims({ width, height });
+            }
+        });
+        resizeObserver.observe(graphContainerRef.current);
+
+        // Initial set if available
+        if (graphContainerRef.current.clientWidth > 0) {
+            setGraphDims({
+                width: graphContainerRef.current.clientWidth,
+                height: graphContainerRef.current.clientHeight || 400
+            });
+        }
+
+        return () => resizeObserver.disconnect();
+    }, [activeTab]);
 
     // 자동완성
     useEffect(() => {
@@ -197,10 +226,24 @@ export default function StockSearch() {
                     .then(r => r.json()).then(d => { if (d.success) setFinancialData(d); }),
             );
         } else if (activeTab === 'network') {
-            fetches.push(
-                fetch(`${API_BASE}/api/stocks/${code}/foreign`)
-                    .then(r => r.json()).then(d => { if (d.success) setForeignData(d); }),
-            );
+            const fetchNetworkData = async () => {
+                setLoading(true);
+                try {
+                    const [foreignRes, relRes] = await Promise.all([
+                        fetch(`${API_BASE}/api/stocks/${code}/foreign`),
+                        fetch(`${API_BASE}/api/stocks/${code}/relationship`)
+                    ]);
+                    const foreignData = await foreignRes.json();
+                    const relData = await relRes.json();
+                    if (foreignData.success) setForeignData(foreignData);
+                    if (relData.success) setRelationshipData(relData);
+                } catch (err) {
+                    console.error('Error fetching network data:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetches.push(fetchNetworkData());
         } else if (activeTab === 'theme') {
             fetches.push(
                 fetch(`${API_BASE}/api/stocks/${code}/themes`)
@@ -536,6 +579,27 @@ export default function StockSearch() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* 공매도 현황 */}
+                                    {foreignData?.shortSelling?.length > 0 && (
+                                        <div className="card" style={{ marginTop: 'var(--space-lg)' }}>
+                                            <div className="card-header"><div className="card-title">📉 공매도 현황</div></div>
+                                            <div className="card-body">
+                                                <ResponsiveContainer width="100%" height={250}>
+                                                    <ComposedChart data={foreignData.shortSelling}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                        <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
+                                                        <YAxis yAxisId="left" tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} tickFormatter={v => fmtBig(v)} />
+                                                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} tickFormatter={v => fmtBig(v)} />
+                                                        <Tooltip content={<ChartTooltip />} />
+                                                        <Bar yAxisId="left" dataKey="short_vol" name="공매도량" fill="rgba(239,68,68,0.4)" />
+                                                        <Line yAxisId="right" type="monotone" dataKey="balance_amt" name="공매도 잔고" stroke="#f59e0b" dot={false} strokeWidth={2} />
+                                                        <Legend />
+                                                    </ComposedChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -617,30 +681,121 @@ export default function StockSearch() {
                             )}
 
                             {/* ④ 네트워크 탭 */}
-                            {activeTab === 'network' && foreignData && (
+                            {activeTab === 'network' && (foreignData || relationshipData) && (
                                 <div className="tab-network">
-                                    {/* 공매도 */}
-                                    {foreignData.shortSelling?.length > 0 && (
-                                        <div className="card">
-                                            <div className="card-header"><div className="card-title">📉 공매도 현황</div></div>
-                                            <div className="card-body">
-                                                <ResponsiveContainer width="100%" height={250}>
-                                                    <ComposedChart data={foreignData.shortSelling}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                                        <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} />
-                                                        <YAxis yAxisId="left" tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} tickFormatter={v => fmtBig(v)} />
-                                                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748b', fontSize: 11 }} tickLine={false} tickFormatter={v => fmtBig(v)} />
-                                                        <Tooltip content={<ChartTooltip />} />
-                                                        <Bar yAxisId="left" dataKey="short_vol" name="공매도량" fill="rgba(239,68,68,0.4)" />
-                                                        <Line yAxisId="right" type="monotone" dataKey="balance_amt" name="공매도 잔고" stroke="#f59e0b" dot={false} strokeWidth={2} />
-                                                        <Legend />
-                                                    </ComposedChart>
-                                                </ResponsiveContainer>
+                                    {/* 기업 관계도 (공매도 차트 대체) */}
+                                    {relationshipData?.nodes?.length > 0 && (
+                                        <div className="card" style={{ marginTop: 'var(--space-lg)', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+                                            <div className="card-header" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                <div className="card-title" style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>🔗 {relationshipData.groupName || '기업'} 지분 관계도</span>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>
+                                                        <span style={{ color: '#f59e0b', marginRight: '4px' }}>●</span>검색 종목
+                                                        <span style={{ color: '#0ea5e9', marginLeft: '12px', marginRight: '4px' }}>●</span>기타 계열사
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 'var(--space-sm)', padding: 'var(--space-md)', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)', width: '100%', lineHeight: '1.5' }}>
+                                                    <strong>💡 그래프 해석 가이드:</strong><br />
+                                                    - <strong>원(노드)의 크기</strong>는 해당 기업의 <strong>매출액</strong> 규모에 비례합니다. 원이 클수록 매출이 높습니다.<br />
+                                                    - <strong>선(링크)의 굵기</strong>와 표시된 수치는 <strong>지분율(%)</strong>을 의미하며, 화살표 방향은 출자(최대주주) 방향입니다.
+                                                </div>
+                                            </div>
+                                            {console.log("Rendering ForceGraph with data:", relationshipData, "Dims:", graphDims)}
+                                            <div className="card-body" style={{ flex: 1, minHeight: '400px', backgroundColor: 'rgba(0,0,0,0.2)', position: 'relative', overflow: 'hidden' }} ref={graphContainerRef}>
+                                                {graphDims.width > 0 && (
+                                                    <ForceGraph2D
+                                                        graphData={{
+                                                            nodes: relationshipData.nodes,
+                                                            links: relationshipData.links
+                                                        }}
+                                                        nodeLabel={n => `${n.name}\n매출액: ${fmtBig(n.val)}`}
+                                                        linkLabel={l => `지분율: ${l.ratio}%`}
+                                                        nodeRelSize={6}
+                                                        nodeVal={n => Math.log10(Math.max(n.val, 1)) * 10}
+                                                        nodeColor={n => n.isTarget ? '#f59e0b' : '#0ea5e9'}
+                                                        linkColor={() => 'rgba(255,255,255,0.15)'}
+                                                        linkWidth={l => Math.sqrt(l.ratio) * 0.5}
+                                                        linkDirectionalArrowLength={3}
+                                                        linkDirectionalArrowRelPos={1}
+                                                        linkCanvasObjectMode={() => 'after'}
+                                                        linkCanvasObject={(link, ctx, globalScale) => {
+                                                            const MAX_FONT_SIZE = 4;
+                                                            const LABEL_NODE_MARGIN = 6 * 1.5; // match nodeRelSize
+
+                                                            const start = link.source;
+                                                            const end = link.target;
+
+                                                            if (typeof start !== 'object' || typeof end !== 'object') return;
+
+                                                            // calculate label positioning (middle)
+                                                            const textPos = {
+                                                                x: start.x + (end.x - start.x) / 2,
+                                                                y: start.y + (end.y - start.y) / 2
+                                                            };
+
+                                                            const relLink = { x: end.x - start.x, y: end.y - start.y };
+                                                            const maxTextLength = Math.sqrt(Math.pow(relLink.x, 2) + Math.pow(relLink.y, 2)) - LABEL_NODE_MARGIN * 2;
+                                                            if (maxTextLength <= 0) return; // skip if too short
+
+                                                            let textAngle = Math.atan2(relLink.y, relLink.x);
+                                                            if (textAngle > Math.PI / 2) textAngle = -(Math.PI - textAngle);
+                                                            if (textAngle < -Math.PI / 2) textAngle = -(-Math.PI - textAngle);
+
+                                                            const label = `${link.ratio}%`;
+
+                                                            // Use a fixed max size or scale with zoom
+                                                            const fontSize = Math.min(MAX_FONT_SIZE, (12 / globalScale));
+                                                            ctx.font = `${fontSize}px Inter, sans-serif`;
+
+                                                            ctx.save();
+                                                            ctx.translate(textPos.x, textPos.y);
+                                                            ctx.rotate(textAngle);
+
+                                                            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                                                            ctx.textAlign = 'center';
+                                                            ctx.textBaseline = 'middle';
+                                                            ctx.fillText(label, 0, -2); // Draw slightly above the line
+                                                            ctx.restore();
+                                                        }}
+                                                        onNodeClick={node => selectStock({ stock_code: node.id, stock_name: node.name })}
+                                                        width={graphDims.width}
+                                                        height={graphDims.height}
+                                                        backgroundColor="transparent"
+                                                        cooldownTicks={100}
+                                                        d3AlphaDecay={0.02}
+                                                        d3VelocityDecay={0.3}
+                                                        nodeCanvasObject={(node, ctx, globalScale) => {
+                                                            const label = node.name;
+                                                            const fontSize = node.isTarget ? 14 / globalScale : 12 / globalScale;
+                                                            ctx.font = `${fontSize}px Inter, sans-serif`;
+
+                                                            // Draw node with dynamic size based on revenue
+                                                            // We increase the multiplier and use Math.pow for more aggressive visual differentiation
+                                                            const baseSize = Math.max(Math.log10(Math.max(node.val, 1)) * 3, 2);
+                                                            const size = node.isTarget ? baseSize * 1.2 : baseSize; // Make target slightly larger
+
+                                                            ctx.beginPath();
+                                                            ctx.arc(node.x, node.y, size, 0, 2 * Math.PI, false);
+                                                            ctx.fillStyle = node.isTarget ? '#f59e0b' : '#1e293b';
+                                                            ctx.fill();
+                                                            ctx.strokeStyle = node.isTarget ? '#fbbf24' : '#0ea5e9';
+                                                            ctx.lineWidth = node.isTarget ? 2 : 1.5;
+                                                            ctx.stroke();
+
+                                                            // Draw label
+                                                            ctx.textAlign = 'center';
+                                                            ctx.textBaseline = 'middle';
+                                                            ctx.fillStyle = '#f8fafc';
+                                                            ctx.fillText(label, node.x, node.y + size + 6);
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     )}
 
-                                    {foreignData.foreign?.length === 0 && foreignData.shortSelling?.length === 0 && (
+                                    {/* 동일 그룹 관계도 없을 경우 메시지 */}
+                                    {relationshipData?.nodes?.length === 0 && (
                                         <div className="no-data">네트워크 데이터가 없습니다.</div>
                                     )}
                                 </div>

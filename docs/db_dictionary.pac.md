@@ -4,20 +4,28 @@ name: "AtoZ 데이터베이스 사전 (Data Dictionary)"
 author: "QuantTrader-PAC"
 created: "2026-03-05"
 database:
-  host: "118.219.232.158"
-  port: 15432
-  name: "atoz"
+  host: "${db_host}"
+  port: ${db_port}
+  name: "${db_name}"
   user: "${db_user}"
   password: "${db_password}"
 parameters:
   db_user:
+  db_host:
     type: string
-    default: "azadmin"
-    description: "DB 접속 계정"
+    description: "DB 접속 호스트 (환경 변수 DB_HOST 권장)"
+  db_port:
+    type: number
+    description: "DB 접속 포트 (환경 변수 DB_PORT 권장)"
+  db_name:
+    type: string
+    description: "DB 이름 (환경 변수 DB_NAME 권장)"
+  db_user:
+    type: string
+    description: "DB 접속 계정 (환경 변수 DB_USER 권장)"
   db_password:
     type: string
-    default: "pg1234"
-    description: "DB 접속 비밀번호"
+    description: "DB 접속 비밀번호 (환경 변수 DB_PASSWORD 권장)"
   target_schema:
     type: string
     default: "ALL"
@@ -347,6 +355,18 @@ visual.vsl_* 테이블들은 company/market 원천 데이터를 가공한 것
 → JOIN 시 alias 필수: krx.code = master.stock_code
 ```
 
+### 5.8 조인 시 문자열 정규화 (법인명/주주명)
+```
+⚠️ master_company_list의 corp_name과 dart_maxshare_info의 nm 등 이름 기반 조인 시 문자열 불일치 발생!
+   - master_company_list : '삼성전자(주)'
+   - dart_maxshare_info  : '삼성전자'
+
+✅ 해결책: SQL Query나 애플리케이션 단에서 문자열 정규화 필수
+   - SQL: REPLACE(corp_name, '(주)', ''), REPLACE(nm, '주식회사', '')
+   - 애플리케이션 정규식: `name.replace(/\(주\)|주식회사|\s/g, '')`
+   - 두 데이터셋을 매칭할 때는 항상 정규화된 이름으로 비교해야 합니다.
+```
+
 ## 6. Query Templates (쿼리 템플릿)
 
 ### 6.1 KOSPI 지수 조회
@@ -428,8 +448,11 @@ SELECT yyyymm, data_value::numeric AS value
 
 ```
 바인딩 맵:
-  ${db_user}          → database.user         (default: azadmin)
-  ${db_password}      → database.password     (default: pg1234)
+  ${db_host}          → database.host         (환경 변수 DB_HOST 사용)
+  ${db_port}          → database.port         (환경 변수 DB_PORT 사용)
+  ${db_name}          → database.name         (환경 변수 DB_NAME 사용)
+  ${db_user}          → database.user         (환경 변수 DB_USER 사용)
+  ${db_password}      → database.password     (환경 변수 DB_PASSWORD 사용)
   ${target_schema}    → 조회 대상 스키마       (default: ALL)
   ${stock_code}       → 종목코드 6자리         (예: 005930)
   ${lookback_period}  → 조회 기간             (예: 1 year, 6 months)

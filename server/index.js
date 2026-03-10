@@ -902,6 +902,112 @@ app.get('/api/stocks/:code/themes', async (req, res) => {
     }
 });
 
+// 8. 기업 지분 관계도 (그룹 계열사 중심)
+app.get('/api/stocks/:code/relationship', async (req, res) => {
+    try {
+        const { code } = req.params;
+
+        // 1. 해당 종목의 그룹 정보 조회
+        const groupInfo = await pool.query(`
+            SELECT corp_group, stock_name, stock_code, revenue::numeric
+              FROM company.master_company_list
+             WHERE stock_code = $1
+             LIMIT 1
+        `, [code]);
+
+        if (groupInfo.rows.length === 0) {
+            return res.json({ success: true, nodes: [], links: [] });
+        }
+
+        const target = groupInfo.rows[0];
+        const groupName = target.corp_group;
+
+        // 그룹이 없는 경우 단일 노드만 반환 (또는 빈 배열)
+        if (!groupName || groupName === '-' || groupName === '기타') {
+            return res.json({
+                success: true,
+                nodes: [{ id: target.stock_code, name: target.stock_name, val: Number(target.revenue) || 100, isTarget: true }],
+                links: []
+            });
+        }
+
+        // 2. 같은 그룹 내 모든 계열사 조회
+        const affiliates = await pool.query(`
+            SELECT stock_code, stock_name, corp_name, corp_code, revenue::numeric
+              FROM company.master_company_list
+             WHERE corp_group = $1
+             LIMIT 50
+        `, [groupName]);
+
+        const nodes = affiliates.rows.map(a => ({
+            id: a.stock_code,
+            name: a.stock_name,
+            corp_name: a.corp_name,
+            corp_code: a.corp_code,
+            val: Number(a.revenue) || 10,
+            isTarget: a.stock_code === code
+        }));
+
+        const nodeIds = nodes.map(n => n.id);
+        const nodeCorpCodes = nodes.map(n => n.corp_code).filter(Boolean);
+
+        // 주주명(nm) 매칭을 위해 corp_name, stock_name, 그리고 '(주)' 등을 제거한 이름 모두 생성
+        const allPossibleNames = new Set();
+        nodes.forEach(n => {
+            if (n.corp_name) allPossibleNames.add(n.corp_name);
+            if (n.name) allPossibleNames.add(n.name);
+            if (n.corp_name) allPossibleNames.add(n.corp_name.replace(/\(주\)|주식회사|\s/g, ''));
+            if (n.name) allPossibleNames.add(n.name.replace(/\(주\)|주식회사|\s/g, ''));
+        });
+        const nameArray = Array.from(allPossibleNames);
+
+        // nm(이름) 값으로 대응되는 node id를 찾는 함수
+        const findNodeIdByName = (nm) => {
+            if (!nm) return null;
+            const cleanNm = nm.replace(/\(주\)|주식회사|\s/g, '');
+            const target = nodes.find(n =>
+                n.corp_name === nm || n.name === nm ||
+                (n.corp_name && n.corp_name.replace(/\(주\)|주식회사|\s/g, '') === cleanNm) ||
+                (n.name && n.name.replace(/\(주\)|주식회사|\s/g, '') === cleanNm)
+            );
+            return target ? target.id : null;
+        };
+
+        // 타겟의 id를 찾는 함수 (corp_code 우선, 없으면 corp_name 기반)
+        const findNodeIdByTarget = (corpCode, corpName) => {
+            const target = nodes.find(n => n.corp_code === corpCode || n.corp_name === corpName);
+            return target ? target.id : null;
+        };
+
+        // 3. 계열사 간 지분 관계 조회 (dart_maxshare_info 활용)
+        // target은 corp_code 리스트로, owner는 가능한 모든 이름 리스트로 조회
+        const relationships = await pool.query(`
+            SELECT m.corp_code as target_corp, m.corp_name as target_name, 
+                   m.nm as owner_name, m.trmend_posesn_stock_qota_rt::numeric as ratio
+              FROM company.dart_maxshare_info m
+             WHERE (m.corp_code = ANY($1) OR m.corp_name = ANY($2))
+               AND m.trmend_posesn_stock_qota_rt > 0
+        `, [nodeCorpCodes, nodes.map(n => n.corp_name)]);
+
+        // links 생성
+        const links = relationships.rows.map(r => ({
+            source: findNodeIdByName(r.owner_name),
+            target: findNodeIdByTarget(r.target_corp, r.target_name),
+            ratio: Number(r.ratio)
+        })).filter(l => l.source && l.target && l.source !== l.target);
+
+        res.json({
+            success: true,
+            groupName,
+            nodes,
+            links
+        });
+    } catch (err) {
+        console.error('Error in /api/stocks/:code/relationship:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
     console.log(`🚀 Stock Analysis API running on port ${PORT}`);

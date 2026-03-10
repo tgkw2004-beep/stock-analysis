@@ -133,5 +133,27 @@ Recharts의 `<Bar />` 컴포넌트를 사용하여 캔들차트를 커스텀 렌
     3.  하위 **Presenter(위젯 컴포넌트)**에는 `data`, `loading` Props만 순수하게 전달합니다.
     4.  하위 위젯은 `if (loading) return <Skeleton />` 처리만 하고 데이터 렌더링에 집중합니다.
 
+## 7. Network Graph (네트워크 관계도) 렌더링 규칙
+
+기업 지분 관계 등 노드(Node)와 링크(Link) 기반의 네트워크 시각화를 구현할 때는 반드시 **`react-force-graph-2d`** 라이브러리를 표준으로 사용하며, 다음 컴포넌트 작성 규칙을 엄격히 준수합니다.
+
+### 7.1 반응형(Responsive) 캔버스 강제 규칙 (Blank 화면 방지)
+*   **문제**: `react-force-graph-2d`는 렌더링 시점에 부모 컨테이너의 크기(`width=0`, `height=0`)를 명확히 인지하지 못하면 캔버스에 아무 요소도 그리지 않는(Blank) 치명적인 렌더링 누락 버그가 있습니다.
+*   **해결책**:
+    1.  그래프를 감싸는 부모 래퍼(Wrapper) 요소에 **최소 높이(`minHeight: '400px'` 등)**를 반드시 명시합니다.
+    2.  `ResizeObserver`를 활용하여 부모 DOM 요소의 실제 크기를 측정하고, 이 값을 그래프 컴포넌트의 `width`, `height` Props에 동적으로 주입하는 패턴을 강제합니다.
+    ```javascript
+    // Container 요소의 ref를 이용해 ResizeObserver 설정
+    const [dimensions, setDimensions] = useState({ width: 0, height: 400 });
+    // ... ResizeObserver 로직으로 dimensions 업데이트
+    <ForceGraph2D width={dimensions.width} height={dimensions.height} /* ... */ />
+    ```
+
+### 7.2 Link(선) 텍스트 렌더링 각도(Angle) 계산 규칙
+*   **목적**: 노드 간의 관계값(ex. 지분율 데이터)을 연결선(Link) 위에 텍스트로 시각화해야 합니다.
+*   **해결책**: HTML 요소가 아닌 캔버스 컨텍스트 리페인팅 패턴을 사용해야 자연스럽습니다.
+    1.  `linkCanvasObjectMode` 속성을 `() => 'after'` 로 설정하여 선이 그려진 직후 텍스트를 그립니다.
+    2.  `linkCanvasObject` 속성 콜백 내부에서 `Math.atan2(target.y - source.y, target.x - source.x)` 공식을 사용하여 **선과 동일한 각도**로 텍스트 캔버스를 회전(`ctx.rotate`)시킨 후 텍스트를 렌더링합니다.
+
 ---
 // 다음 UI 컴포넌트 추가/수정 시 이 PAC 규칙을 최우선으로 참고하여 작업하시기 바랍니다.
