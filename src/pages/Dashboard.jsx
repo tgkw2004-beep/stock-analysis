@@ -8,6 +8,7 @@ import { fetchQuantSummary, fetchQuantDates, fetchQuantStrategies, fetchSupplySu
 import MarketIndices from '../components/MarketIndices';
 import TopThemes from '../components/TopThemes';
 import EconomicIndicators from '../components/EconomicIndicators';
+import TopEtfs from '../components/TopEtfs';
 
 function ChartTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
@@ -27,6 +28,7 @@ export default function Dashboard() {
         indices: null,
         topThemes: null,
         economicIndicators: null,
+        topEtfs: null,
         loading: true
     });
 
@@ -48,6 +50,7 @@ export default function Dashboard() {
                     indices: summary.indices,
                     topThemes: summary.topThemes,
                     economicIndicators: summary.economicIndicators,
+                    topEtfs: summary.topEtfs,
                     loading: false
                 });
             } else {
@@ -105,6 +108,9 @@ export default function Dashboard() {
 
             {/* 기초경제지표 */}
             <EconomicIndicators indicators={dashData.economicIndicators} loading={dashData.loading} />
+            
+            {/* 최고가 ETF */}
+            <TopEtfs etfs={dashData.topEtfs} loading={dashData.loading} />
 
             {/* 분석 날짜 바 */}
             {qData.loading ? <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>요약 정보를 불러오는 중...</div> : (

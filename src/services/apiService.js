@@ -161,7 +161,8 @@ export async function fetchDashboardSummary() {
         return {
             indices: null,
             topThemes: null,
-            economicIndicators: null
+            economicIndicators: null,
+            topEtfs: null
         };
     }
 }

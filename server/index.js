@@ -19,6 +19,10 @@ const pool = new Pool({
     connectionTimeoutMillis: 5000,
 });
 
+pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err);
+});
+
 // CORS 설정
 app.use(cors({
     origin: [
@@ -444,11 +448,23 @@ app.get('/api/dashboard/summary', async (req, res) => {
 
         const economicIndicators = ecoData.filter(e => e !== null);
 
+        // 4. ETF 상위 5개 (가격 높은 순)
+        const etfQuery = `
+            SELECT o.code, COALESCE(i.kor_name, o.name) AS name, o.close, o.price_change, o.change_rate, to_char(o.date, 'MM-DD') as date_str
+              FROM fin_prod.krx_etf_ohlcv o
+              LEFT JOIN fin_prod.krx_etf_info i ON o.code = i.code
+             WHERE o.date = (SELECT MAX(date) FROM fin_prod.krx_etf_ohlcv)
+             ORDER BY o.close DESC
+             LIMIT 5;
+        `;
+        const { rows: topEtfs } = await pool.query(etfQuery);
+
         res.json({
             success: true,
             indices,
             topThemes,
-            economicIndicators
+            economicIndicators,
+            topEtfs
         });
 
     } catch (err) {
