@@ -3,9 +3,9 @@
 용도가 특정된 소규모 스키마들의 정보를 통합 관리합니다.
 
 ## 1. `fin_prod` (금융상품)
-- `krx_etf_ohlcv` / `krx_etf_info`: **ETF 시세 및 종목 정보**
-- `fss_deposit_prod` / `fss_save_prod`: 예적금 상품
-- `fss_credit_loan`: 대출 상품
+- `krx_etf_ohlcv` (~11M) / `krx_etf_info` (~1K): **ETF 시세 및 종목 정보**
+- `fss_deposit_prod` (~5.5K) / `fss_save_prod` (~3K): 예적금 상품
+- `fss_credit_loan` (~500): 대출 상품
 
 ## 2. `industry` (산업지표)
 - `ecos_all_original`: 전산업 통계

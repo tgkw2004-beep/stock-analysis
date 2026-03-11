@@ -5,13 +5,13 @@
 ## 주요 테이블 그룹
 
 ### 1. 전략 및 신호 (PostgreSQL: `visual.vsl_*`)
-- `vsl_bollinger_strategy`: 볼린저 밴드 매매 신호
-- `vsl_macd_btm_supply`: MACD 바닥 수급 전략 리스트
-- `vsl_inv_strat_picks_*`: 기간별(Short/Swing/Trend) 추천 종목
+- `vsl_bollinger_strategy` (~274): 볼린저 밴드 매매 신호
+- `vsl_macd_btm_supply` (~665): MACD 바닥 수급 전략 리스트
+- `vsl_inv_strat_picks_*` (~30K~800K): 기간별(Short/Swing/Trend) 추천 종목
 
 ### 2. 테마 분석
-- `vsl_naver_theme`: 테마별 종목 가중수익률 분석 (대용량)
-- `vsl_naver_theme_rotation`: 테마 순환매 랭킹
+- `vsl_naver_theme` (~9.2M): 테마별 종목 가중수익률 분석 (대용량)
+- `vsl_naver_theme_rotation` (~415K): 테마 순환매 랭킹
 
 ### 3. 분석용 마스터 (PostgreSQL: `visual.vsl_krx_*`)
 - `vsl_krx_stocks_ohlcv`: OHLCV 데이터에 WICS 산업분류가 조인된 형태 (**강력 권장**)

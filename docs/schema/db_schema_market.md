@@ -5,9 +5,9 @@
 ## 주요 테이블 그룹
 
 ### 1. 시장 지수 (PostgreSQL: `market.*`)
-- `krx_stocks_kospi_index` / `krx_stocks_kosdaq_index`: 국내 지수 (**closing_price** 컬럼 주의)
-- `kis_major_market_index`: 해외지수 (SPX, COMP, .DJI)
-- `yfin_sp500_index` / `yfin_nasdaq_composite_index`: Yahoo Finance 데이터
+- `krx_stocks_kospi_index` / `krx_stocks_kosdaq_index` (~1.5K): 국내 지수 (**closing_price** 컬럼 주의)
+- `kis_major_market_index` (~240K): 해외지수 (SPX, COMP, .DJI)
+- `yfin_sp500_index` / `yfin_nasdaq_composite_index` (~1.6K): Yahoo Finance 데이터
 
 ### 2. ECOS 한국은행 (PostgreSQL: `market.ecos_*`)
 - `ecos_currency_all`: 환율 데이터 (`date`, `item_name1`)
